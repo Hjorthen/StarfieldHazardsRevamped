@@ -28,4 +28,6 @@ new HazardsModBuilder(types, resolver)
     .AddSoakValues()
     .AddSoakDamageConditionForms()
     .PatchMagicEffects(priorityOrder.MagicEffect().WinningOverrides())
-    .PatchSpellHazards(priorityOrder.Spell().WinningOverrides());
+    .PatchSpellHazards(priorityOrder.Spell().WinningOverrides())
+    .PatchRestoreSoak()
+    .WriteTo(priorityOrder.ToLoadOrder(), "");

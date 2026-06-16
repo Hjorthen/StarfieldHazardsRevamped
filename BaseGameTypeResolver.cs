@@ -23,7 +23,7 @@ public class BaseGameTypeResolver
     {
         get
         {
-            return new FormKey(new ModKey("Starfield", ModType.Master), 313); //linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Damage_Soak");
+            return new FormKey(new ModKey("Starfield", ModType.Master), 787); //linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Damage_Soak");
         }
     }
 
@@ -61,9 +61,21 @@ public class BaseGameTypeResolver
     {
         this.linkCache = linkCache;
     }
+    public ISpellGetter GetRestoreSoakAbility()
+    {
+        return linkCache.Resolve<ISpellGetter>("ENV_RestoreSoak_Ability");
+    }
+    public IMagicEffectGetter GetRestoreSoakMagicEffectRecord()
+    {
+        return linkCache.Resolve<IMagicEffectGetter>("ENV_ResoreSoak_Effect");
+    }
     public IConditionRecordGetter GetSoakDamageConditionRecord()
     {                                         
         return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_DamageSoak");
+    }
+    public IConditionRecordGetter GetSoakRestoreConditionRecord()
+    {                                         
+        return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_RestoreSoak");
     }
     public IConditionRecordGetter GetApplyEnvironmentDamageConditionRecord()
     {
@@ -72,15 +84,19 @@ public class BaseGameTypeResolver
 
     public bool IsConditionApplyEnviornmentalDamage(IConditionGetter condition)
     {
-        return IsConditionOnFormKey(condition, ENV_CND_ApplyEnvironmentalDamage_FormKey);
+        return IsConditionTargetingFormKey(condition, ENV_CND_ApplyEnvironmentalDamage_FormKey);
     }
 
-    public bool IsConditionDamageSoak(IConditionGetter condition)
+    public bool IsConditionTargetingDamageSoak(IConditionGetter condition)
     {
-        return IsConditionOnFormKey(condition, ENV_CND_DamageSoak_FormKey);
+        return IsConditionTargetingFormKey(condition, ENV_Damage_Soak_FormKey);
+    }
+    public bool IsConditionTargetingDamageSoakForm(IConditionGetter condition)
+    {
+        return IsConditionTargetingFormKey(condition, ENV_CND_DamageSoak_FormKey);
     }
 
-    private static bool IsConditionOnFormKey(IConditionGetter condition, FormKey key)
+    private static bool IsConditionTargetingFormKey(IConditionGetter condition, FormKey key)
     {
 
         if(condition.Data is IsTrueForConditionFormConditionData conditionForm)
@@ -92,10 +108,16 @@ public class BaseGameTypeResolver
             }
         } else if (condition.Data is GetValueConditionData conditionTyped)
         {
-            if((int)conditionTyped.FirstParameter == key.ID) {
+            if(conditionTyped.FirstParameter.FormKey == key) {
                 return true;
             }
 
+        } else if (condition.Data is GetValuePercentConditionData percentageCondition)
+        {
+            if(percentageCondition.FirstParameter.FormKey == key)
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -105,7 +127,7 @@ public class BaseGameTypeResolver
     {
         if(condition.Data is GetValueConditionData conditionTyped)
         {
-            conditionTyped.FirstParameter = (ActorValue)actorValue.FormKey.ID;
+            conditionTyped.FirstParameter.SetTo(actorValue.FormKey);
         } else
         {
             throw new System.ArgumentException($"{nameof(condition)} was not of type {nameof(IsTrueForConditionFormConditionData)}");
@@ -146,12 +168,17 @@ public class BaseGameTypeResolver
         } else if (resistValue.FormKey == ENV_Resist_Thermal_FormKey)
         {
             return "Thermal";
+        } else if (resistValue.FormKey.IsNull)
+        {
+            return "Thermal";
         }
         throw new NotImplementedException();
     }
     public string GetEnvEffectDamageType(IMagicEffectGetter record)
     {
-        return ResistanceToEnvSoakTyped(record.ResistValue);
+        if(!record.ResistValue.IsNull)
+            return ResistanceToEnvSoakTyped(record.ResistValue);
+        return "Thermal"; // TODO: How to properly handle this case
     }
 
 }
