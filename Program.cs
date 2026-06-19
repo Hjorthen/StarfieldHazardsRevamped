@@ -27,7 +27,9 @@ var resolver = new BaseGameTypeResolver(linkCache);
 new HazardsModBuilder(types, resolver)
     .AddSoakValues()
     .AddSoakDamageConditionForms()
+    .AddExtremeEnvironmentMagicEffects()
     .PatchMagicEffects(priorityOrder.MagicEffect().WinningOverrides())
     .PatchSpellHazards(priorityOrder.Spell().WinningOverrides())
     .PatchRestoreSoak()
+    //.DebugPrint();
     .WriteTo(priorityOrder.ToLoadOrder(), "");

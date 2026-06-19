@@ -1,6 +1,7 @@
 using System;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Starfield;
 
 public class BaseGameTypeResolver
@@ -48,7 +49,14 @@ public class BaseGameTypeResolver
             return linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Resist_Radiation");
         }
     }
-    private FormKey ENV_Resist_Thermal_FormKey
+    private FormKey ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_FormKey
+    {
+        get
+        {
+            return linkCache.ResolveIdentifier<IActorValueInformation>("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect");
+        }
+    }
+    public FormKey ENV_Resist_Thermal_FormKey
     {
         get
         {
@@ -64,6 +72,10 @@ public class BaseGameTypeResolver
     public ISpellGetter GetRestoreSoakAbility()
     {
         return linkCache.Resolve<ISpellGetter>("ENV_RestoreSoak_Ability");
+    }
+    public IMagicEffectGetter GetExtremeEnvironmentEffect()
+    {
+        return linkCache.Resolve<IMagicEffectGetter>(ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_FormKey);
     }
     public IMagicEffectGetter GetRestoreSoakMagicEffectRecord()
     {
@@ -154,6 +166,29 @@ public class BaseGameTypeResolver
         var actorValue2 = magicEffect.ActorValue2;
         return actorValue2.FormKey == ENV_Damage_Soak_FormKey;
     }
+
+    public string? GetEnvEffectDamageType(IFormKeyGetter link)
+    {
+        if(linkCache.TryResolve<IMagicEffectGetter>(link.FormKey, out IMagicEffectGetter mf))
+            return GetEnvEffectDamageType(mf);
+        return null;
+    }
+    public string? GetEnvEffectDamageType(IMagicEffectGetter record)
+    {
+        if(!record.ResistValue.IsNull)
+            return ResistanceToEnvSoakTyped(record.ResistValue);
+        return EditorIdToEnvSoakTyped(record.EditorID);
+    }
+
+    private string? EditorIdToEnvSoakTyped(string editorId)
+    {
+        if(editorId.Contains("Airborne"))
+            return "Airborne";
+        else if (editorId.Contains("Shock"))
+            return "Radiation";
+        return null;
+    }
+
     private string ResistanceToEnvSoakTyped(IFormLinkGetter<IActorValueInformationGetter> resistValue)
     {
         if(resistValue.FormKey == ENV_Resist_Corrosive_FormKey)
@@ -174,11 +209,9 @@ public class BaseGameTypeResolver
         }
         throw new NotImplementedException();
     }
-    public string GetEnvEffectDamageType(IMagicEffectGetter record)
-    {
-        if(!record.ResistValue.IsNull)
-            return ResistanceToEnvSoakTyped(record.ResistValue);
-        return "Thermal"; // TODO: How to properly handle this case
-    }
 
+    public bool IsExtremeEnvironmentEffect(IEffectGetter effect)
+    {
+        return effect.BaseEffect.FormKey == ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_FormKey;
+    }
 }

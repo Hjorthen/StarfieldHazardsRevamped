@@ -4,10 +4,10 @@ using System.IO;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Order;
+using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Starfield;
 // TODO: 
-// Split the record ENV_CND_RestoreSoak to allow Soak values to restore - Maybe not? Just the ENV_RestoreSoak should be enough?
-// ENV_RestoreSoak_Ability will need changing too
+// ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect
 public class HazardsModBuilder
 {
     private readonly StarfieldMod mod;
@@ -22,6 +22,7 @@ public class HazardsModBuilder
     }
 
     Dictionary<string, ActorValueInformation> envSoakRecords;
+    Dictionary<string, MagicEffect> envExtremeMagicEffects;
     Dictionary<string, ConditionRecord> envSoakConditions;
     Dictionary<string, ConditionRecord> envApplyEnvDamageCondition;
     public HazardsModBuilder AddSoakValues()
@@ -31,10 +32,8 @@ public class HazardsModBuilder
         {
             var newValue = mod.ActorValueInformation.AddNew($"ENV_Soak_{entry}");
             Console.WriteLine("Adding new SoakValue: " + newValue.EditorID);
-            newValue.Type = ActorValueInformation.Types.IntValue;
-            newValue.Min = 0;
-            newValue.Max = 100;
-            newValue.DefaultValue = 0;
+            newValue.Type = ActorValueInformation.Types.Variable;
+            newValue.DefaultValue = 100;
 
             envSoakRecords[entry] = newValue;
         }
@@ -64,6 +63,25 @@ public class HazardsModBuilder
             }
         }
         return copy;
+    }
+    public HazardsModBuilder AddExtremeEnvironmentMagicEffects()
+    {
+        var effectBase = resolver.GetExtremeEnvironmentEffect();
+        envExtremeMagicEffects = new();
+        foreach (var entry in hazardTypes)
+        {
+            envExtremeMagicEffects[entry] = CreateExtremeEnvironmentEffect(entry, effectBase);
+        }
+
+        return this;
+    }
+
+    private MagicEffect CreateExtremeEnvironmentEffect(string hazardType, IMagicEffectGetter effectBase)
+    {
+        var effectNew = mod.MagicEffects.DuplicateInAsNewRecord(effectBase);
+        effectNew.ActorValue2.SetTo(envSoakRecords[hazardType]);
+
+        return effectNew;
     }
 
     public HazardsModBuilder AddSoakDamageConditionForms()
@@ -113,6 +131,10 @@ public class HazardsModBuilder
         return this;
     }
 
+    private void PatchBaseSoakRestoreMagicEffect()
+    {
+        var baseMagicEffect = resolver.GetRestoreSoakMagicEffectRecord();
+    }
     // The RestoreSoakAbility is applied by the game whenever a player is in a safe area. 
     // We need it to apply spell effects for all the soak value types.
     private void PatchRestoreSoakAbility(IEnumerable<IMagicEffectGetter> applyEffects)
@@ -121,7 +143,6 @@ public class HazardsModBuilder
         var originalEffect = originalRestoreSoakAbility.Effects[0];
 
         var formOverride = mod.Spells.GetOrAddAsOverride(originalRestoreSoakAbility);
-        formOverride.Effects.Clear();
         foreach(var newEffect in applyEffects)
         {
             var effect = originalEffect.DeepCopy();
@@ -137,6 +158,7 @@ public class HazardsModBuilder
         foreach(var hazardType in hazardTypes)
         {
             var newMF = mod.MagicEffects.DuplicateInAsNewRecord(baseMagicEffect, $"ENV_RestoreSoak_Effect_{hazardType}");
+            newMF.Name = "Restore " + hazardType;
             newMF.ActorValue2.SetTo(envSoakRecords[hazardType]);
             createdEffects.Add(newMF);
         }
@@ -177,9 +199,9 @@ public class HazardsModBuilder
             var condition = new ConditionFloat
             {
                 CompareOperator = CompareOperator.LessThan,
-                ComparisonValue = 1,
+                ComparisonValue = 100,
                 Flags = Condition.Flag.OR,
-                Data = new GetValuePercentConditionData()
+                Data = new GetValueConditionData()
                 {
                     FirstParameter = new FormLink<IActorValueInformationGetter>(envSoakRecords[hazardType]),
                 }
@@ -196,7 +218,7 @@ public class HazardsModBuilder
         {
             if(record.EditorID.StartsWith("ENV_"))
             {
-                if(resolver.IsEnvironmentalDamage(record))
+                if(resolver.IsEnvironmentalDamage(record) && !record.EditorID.Contains("TEMP") && !record.EditorID.Contains("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect") && !(record.EditorID == "ENV_ResoreSoak_Effect"))
                 {
                     PatchTargetingEnvSoak(record);
                 }
@@ -232,23 +254,56 @@ public class HazardsModBuilder
         }
         return this;
     }
-    private string GetHazardType(ISpellGetter spell)
+    private string GetHazardDamageTypeForExtremeEnvironmentSpell(ISpellGetter spell)
     {
         var editorId = spell.EditorID;
-        if(editorId.Contains("Thermal") || editorId.Contains("Freezing") || editorId.Contains("Cold") || editorId.Contains("Heat") || editorId.Contains("Burn") || editorId.Contains("Scalding"))
-        {
+        if(editorId.Contains("Cold"))
             return "Thermal";
-        } else if ( editorId.Contains("Airborne") || editorId.Contains("Toxic") || editorId.Contains("AirQuality") || editorId.Contains("Microbial"))
-        {
-            return "Airborne";
-        } else if(editorId.Contains("Corrosive") || editorId.Contains("HeavyMetal"))
-        {
-            return "Corrosive";
-        } else if(editorId.Contains("Radiation") || editorId.Contains("Radioactive"))
-        {
+        else if (editorId.Contains("Heat"))
+            return "Thermal";
+        else if (editorId.Contains("Radiation"))
             return "Radiation";
+        else if (editorId.Contains("Corrosive"))
+            return "Corrosive";
+        else if (editorId.Contains("Toxic"))
+            return "Airborne";
+        else
+            throw new Exception("Unknown ExtremeEnvironment Spell: " + editorId);
+    }
+
+    private string? GetHazardDamageTypeForEnvironmentSpell(ISpellGetter spell)
+    {
+        foreach(var effect in spell.Effects)
+        {
+            var baseEffect = effect.BaseEffect;
+            if(!baseEffect.IsNull)
+            {
+                var effectHazardType = resolver.GetEnvEffectDamageType(baseEffect.FormKey);
+                if(effectHazardType != null)
+                {
+                    return effectHazardType;
+                }
+
+            }
         }
-        throw new NotSupportedException(editorId);
+        return null;
+    }
+    private string? GetHazardDamageTypeForSpell(ISpellGetter spell)
+    {
+        if(spell.EditorID.Contains("ENV_SuppressSoak_Extreme"))
+        {
+            return GetHazardDamageTypeForExtremeEnvironmentSpell(spell);
+        } else
+        {
+            return GetHazardDamageTypeForEnvironmentSpell(spell);
+        }
+    }
+    private string GetHazardType(ISpellGetter spell)
+    {
+        string foundHazardType = GetHazardDamageTypeForSpell(spell);
+        if(foundHazardType != null) 
+            return foundHazardType;
+        throw new Exception("Hazard dmg type could not be determined from the spell: Seems no env-hazard magic effects were in place");
     }
     private void PatchSpellHazard(ISpellGetter record, string hazardType)
     {
@@ -270,20 +325,55 @@ public class HazardsModBuilder
                     resolver.ReplaceConditionTarget(condition, envApplyEnvDamageCondition[hazardType]);
                 }
             }
+            if(resolver.IsExtremeEnvironmentEffect(effect))
+            {
+                effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
+            }
         }
+    }
+
+    private FormKey GetExtremeEnvironmentEffectForHazardType(string hazardType)
+    {
+        return envExtremeMagicEffects[hazardType].FormKey;
     }
 
     private void PatchTargetingEnvSoak(IMagicEffectGetter record)
     {
         Console.WriteLine("Patching magic effect " + record.EditorID);
         var patch = mod.MagicEffects.GetOrAddAsOverride(record);
-        patch.ActorValue2.SetTo(GetEnvSoakTypedFor(record));
+        PatchBrokenMagicEffect(patch);
+        patch.ActorValue2.SetTo(GetEnvSoakTypedFor(patch));
+    }
+
+    private void PatchBrokenMagicEffect(MagicEffect effect)
+    {
+        if(effect.EditorID == "ENV_DMG_Thermal_Water_Heat_Soak_Effect" || effect.EditorID == "ENV_DMG_Thermal_Weather_Soak_Effect")
+        {
+            effect.ResistValue.SetTo(resolver.ENV_Resist_Thermal_FormKey);
+        }
     }
 
     private IActorValueInformationGetter GetEnvSoakTypedFor(IMagicEffectGetter record)
     {
         var type = resolver.GetEnvEffectDamageType(record);
         return envSoakRecords[type];
+    }
+    public void DebugPrint()
+    {
+        Console.WriteLine("Patched hazards:");
+        var linkCache = mod.ToImmutableLinkCache();
+        foreach(var spell in mod.Spells)
+        {
+            Console.WriteLine(spell.EditorID);
+            foreach(var spellEffectRef in spell.Effects)
+            {
+                if(linkCache.TryResolve<IMagicEffectGetter>(spellEffectRef.BaseEffect.FormKey, out var spellEffect)) {
+                    var spellEffectTarget = linkCache.Resolve<IActorValueInformationGetter>(spellEffect.ActorValue2.FormKey);
+
+                    Console.WriteLine("\t" + spellEffect.EditorID + " -> " + spellEffectTarget.EditorID);
+                }
+            }
+        }
     }
     public void WriteTo(ILoadOrder<IModListingGetter<IStarfieldModGetter>> loadOrder, string path)
     {
