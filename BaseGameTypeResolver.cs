@@ -148,7 +148,7 @@ public class BaseGameTypeResolver
 
     // Replaces the evaluated ConditionRecord for the given condition
     // Spells targets ConditionForms whereas ConditionForms themselves has Conditions that target values directly (see ReplaceConditionValue overload for actor value)
-    public void ReplaceConditionTarget(Condition condition, ConditionRecord newCondition)
+    public void ReplaceConditionTarget(Condition condition, IConditionRecordGetter newCondition)
     {
         if(condition.Data is IsTrueForConditionFormConditionData conditionForm)
         {

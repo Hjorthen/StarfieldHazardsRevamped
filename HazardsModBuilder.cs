@@ -6,8 +6,6 @@ using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Order;
 using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Starfield;
-// TODO: 
-// ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect
 public class HazardsModBuilder
 {
     private readonly StarfieldMod mod;
@@ -131,10 +129,6 @@ public class HazardsModBuilder
         return this;
     }
 
-    private void PatchBaseSoakRestoreMagicEffect()
-    {
-        var baseMagicEffect = resolver.GetRestoreSoakMagicEffectRecord();
-    }
     // The RestoreSoakAbility is applied by the game whenever a player is in a safe area. 
     // We need it to apply spell effects for all the soak value types.
     private void PatchRestoreSoakAbility(IEnumerable<IMagicEffectGetter> applyEffects)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Mutagen.Bethesda;
@@ -16,20 +17,20 @@ using var env = GameEnvironment.Typical.Builder<IStarfieldMod, IStarfieldModGett
                 .Build();
 
 var priorityOrder = env.LoadOrder.PriorityOrder;
-// The linkCache has to be created from the priority-order it seems
 
+// The linkCache has to be created from the priority-order it seems
 var linkCache = priorityOrder.ToImmutableLinkCache();
 
-string[] types = ["Thermal", "Airborne", "Corrosive", "Radiation"];
 var resolver = new BaseGameTypeResolver(linkCache);
+var mapper = new HazardsMapper(
+    hazardTypes: ["Thermal", "Airborne", "Corrosive", "Radiation"]
+);
 
+var hazardMod = new StarfieldMod("MyMod.esp", StarfieldRelease.Starfield);
+var hazardSystem = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
+HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
 
-new HazardsModBuilder(types, resolver)
-    .AddSoakValues()
-    .AddSoakDamageConditionForms()
-    .AddExtremeEnvironmentMagicEffects()
-    .PatchMagicEffects(priorityOrder.MagicEffect().WinningOverrides())
-    .PatchSpellHazards(priorityOrder.Spell().WinningOverrides())
-    .PatchRestoreSoak()
-    //.DebugPrint();
-    .WriteTo(priorityOrder.ToLoadOrder(), "");
+hazardMod.BeginWrite
+.ToPath(Path.Combine("", hazardMod.ModKey.FileName))
+.WithLoadOrder(env.LoadOrder)
+.Write();
