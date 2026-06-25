@@ -93,6 +93,37 @@ public class BaseGameTypeResolver
     {
         return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SPELL_ApplyEnvironmentalDamage");
     }
+    public FormKey GetDamageTypeKeyword(string hazardType)
+    {
+        switch(hazardType)
+        {
+            case "Corrosive":
+                return GetKeywordCorrosive();
+            case "Airborne":
+                return GetKeywordAirborne();
+            case "Radiation":
+                return GetKeywordRadiation();
+            case "Thermal":
+                return GetKeywordThermal();
+        }
+        throw new NotImplementedException();
+    }
+    public FormKey GetKeywordRadiation()
+    {
+        return linkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Radiation").FormKey;
+    }
+    public FormKey GetKeywordAirborne()
+    {
+        return linkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Airborne").FormKey;
+    }
+    public FormKey GetKeywordCorrosive()
+    {
+        return linkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Corrosive").FormKey;
+    }
+    public FormKey GetKeywordThermal()
+    {
+        return linkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Radiation").FormKey;
+    }
 
     public bool IsConditionApplyEnviornmentalDamage(IConditionGetter condition)
     {

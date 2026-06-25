@@ -28,8 +28,11 @@ var mapper = new HazardsMapper(
 
 var hazardMod = new StarfieldMod("MyMod.esp", StarfieldRelease.Starfield);
 var hazardSystem = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
+
 HazardSystemItemsPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
+HazardSystemScalingResistancesPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
+
 
 hazardMod.BeginWrite
 .ToPath(Path.Combine("", hazardMod.ModKey.FileName))

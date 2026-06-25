@@ -183,6 +183,9 @@ public class HazardsSystemSpellsPatcher
     {
         Console.WriteLine("Patching spell " + record.EditorID);
         var patch = outputMod.Spells.GetOrAddAsOverride(record);
+
+        patch.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
+
         foreach(var effect in patch.Effects)
         {
             foreach(var condition in effect.Conditions)
@@ -201,6 +204,7 @@ public class HazardsSystemSpellsPatcher
             }
             if(resolver.IsExtremeEnvironmentEffect(effect))
             {
+                patch.Type = Spell.SpellType.Disease;
                 effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
             }
         }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Mutagen.Bethesda.Starfield;
 
@@ -8,6 +9,7 @@ public class HazardSystem
     private readonly Dictionary<string, ConditionRecord> hazardDamageSoakCondition;
     private readonly Dictionary<string, ConditionRecord> applyEnvDamageConditions;
     private readonly ConditionRecord soakDamageTakenCondition;
+    public IEnumerable<String> HazardTypes => hazardActorValues.Keys;
 
     public HazardSystem(Dictionary<string, ActorValueInformation> hazardActorValues, Dictionary<string, ConditionRecord> hazardDamageSoakCondition, Dictionary<string, ConditionRecord> applyEnvDamageConditions, ConditionRecord soakDamageTakenCondition)
     {
