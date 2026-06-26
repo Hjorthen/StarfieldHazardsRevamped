@@ -107,85 +107,28 @@ public class HazardSystemMaxResistancePerkPatcher
 
     private Effect CreateDispellEffect(IActorValueInformationGetter resistanceAV, IMagicEffectGetter mf)
     {
-
-        return new Effect()
-        {
-            Conditions = new ExtendedList<Condition>()
-            {
-                new ConditionFloat()
-                {
-                    CompareOperator = CompareOperator.LessThan,
-                    Data = new GetValueConditionData()
-                    {
-                        FirstParameter = new FormLink<IActorValueInformationGetter>(resistanceAV),
-                    },
-                    ComparisonValue = 85,
-                },
-            },
-            BaseEffect = new FormLinkNullable<IMagicEffectGetter>(mf),
-            Data = new EffectData()
-            {
-                Magnitude = 1
-            }
-        };
+        return new MagicEffectSpellEntryBuilder()
+            .WithBaseEffect(mf)
+            .WithMagnitude(1)
+            .AddCondition(GetValueCondition.With(resistanceAV).LessThan().Value(85))
+            .Build();
     }
     private Effect CreateTierDebuff(int tierValue, int effectMagnitude, IActorValueInformationGetter tierAV, IMagicEffectGetter mf)
     {
-            return new Effect()
-            {
-                Conditions = new ExtendedList<Condition>()
-                {
-                    new ConditionFloat()
-                    {
-                        CompareOperator = CompareOperator.EqualTo,
-                        Data = new GetValueConditionData()
-                        {
-                            FirstParameter = new FormLink<IActorValueInformationGetter>(tierAV),
-                        },
-                        ComparisonValue = tierValue,
-                    },
-                },
-                BaseEffect = new FormLinkNullable<IMagicEffectGetter>(mf),
-                Data = new EffectData()
-                {
-                    Magnitude = effectMagnitude
-                }
-            };
+        return new MagicEffectSpellEntryBuilder()
+            .WithBaseEffect(mf)
+            .WithMagnitude(effectMagnitude)
+            .AddCondition(GetValueCondition.With(tierAV).EqualsTo().Value(tierValue))
+            .Build();
     }
 
     private Effect CreateEffectFor( int resistanceValue, int tierValue, IActorValueInformationGetter resistanceAV, IActorValueInformationGetter tierAV, IMagicEffectGetter mf)
     {
-            return new Effect()
-            {
-                Conditions = new ExtendedList<Condition>()
-                {
-                    new ConditionFloat()
-                    {
-                        CompareOperator = CompareOperator.EqualTo,
-                        Data = new GetValueConditionData()
-                        {
-                            FirstParameter = new FormLink<IActorValueInformationGetter>(resistanceAV),
-                        },
-                        ComparisonValue = resistanceValue,
-                        Flags = Condition.Flag.OR
-                    },
-                    new ConditionFloat()
-                    {
-                        CompareOperator = CompareOperator.EqualTo,
-                        Data = new GetValueConditionData()
-                        {
-                            FirstParameter = new FormLink<IActorValueInformationGetter>(tierAV),
-                        },
-                        ComparisonValue = tierValue,
-                        Flags = Condition.Flag.OR
-                    }
-                },
-                BaseEffect = new FormLinkNullable<IMagicEffectGetter>(mf),
-                Data = new EffectData()
-                {
-                    Magnitude = tierValue
-                }
-            };
-
+        return new MagicEffectSpellEntryBuilder()
+            .WithBaseEffect(mf)
+            .WithMagnitude(tierValue)
+            .AddCondition(GetValueCondition.With(resistanceAV).EqualsTo().ValueOr(resistanceValue))
+            .AddCondition(GetValueCondition.With(tierAV).EqualsTo().ValueOr(tierValue))
+            .Build();
     }
 }
