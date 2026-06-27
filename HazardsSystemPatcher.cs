@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
@@ -51,11 +52,17 @@ public class HazardsSystemPatcher
         envApplyEnvDamageCondition = AddSoakDepletedCondition();
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
         PatchSoakRestoreCondition(soakDamageTakenCondition);
+        return MakeHazardSystem();
+    }
+
+    private HazardSystem MakeHazardSystem()
+    {
         return new HazardSystem(
-            envSoakRecords, 
-            envSoakConditions, 
-            envApplyEnvDamageCondition, 
-            soakDamageTakenCondition
+            hazardToDamageSoakValue: envSoakRecords.ToDictionary(kv => kv.Key, kv => new EditorId<ActorValueInformation>(kv.Value.EditorID!)),
+            hazardToDamageSoakCondition:  envSoakConditions.ToDictionary(kv => kv.Key, kv => new EditorId<ConditionRecord>(kv.Value.EditorID!)),
+            hazardToApplyEnvDamageCondition: envApplyEnvDamageCondition.ToDictionary(kv => kv.Key, kv => new EditorId<ConditionRecord>(kv.Value.EditorID!)),
+            hazardToResistance: hazardTypes.ToDictionary(hazard => hazard, hazard => new EditorId<ActorValueInformation>(resolver.GetResistanceForHazard(hazard).EditorID!)),
+            soakDamageTakenCondition: new EditorId<ConditionRecord>(soakDamageTakenCondition.EditorID!)
         );
     }
     private Dictionary<string, ActorValueInformation> AddSoakValues()

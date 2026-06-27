@@ -63,6 +63,23 @@ public class BaseGameTypeResolver
             return linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Resist_Thermal");
         }
     }
+
+    public IActorValueInformationGetter GetResistanceForHazard(string hazardType)
+    {
+        switch(hazardType)
+        {
+            case "Corrosive":
+                return linkCache.Resolve<IActorValueInformationGetter>("ENV_Resist_Corrosive");
+            case "Airborne":
+                return linkCache.Resolve<IActorValueInformationGetter>("ENV_Resist_Airborne");
+            case "Radiation":
+                return linkCache.Resolve<IActorValueInformationGetter>("ENV_Resist_Radiation");
+            case "Thermal":
+                return linkCache.Resolve<IActorValueInformationGetter>("ENV_Resist_Thermal");
+        }
+        throw new NotImplementedException();
+    }
+
     private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> linkCache;
 
     public BaseGameTypeResolver(ILinkCache<IStarfieldMod, IStarfieldModGetter> linkCache)
