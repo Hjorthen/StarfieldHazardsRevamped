@@ -8,7 +8,7 @@ using Noggog;
 
 public class HazardSystemMaxResistancePerkPatcher
 {
-    private IMagicEffectGetter removeResistanceCapSpellEffect;
+    private IMagicEffectGetter? removeResistanceCapSpellEffect;
     private readonly HazardSystem hazardSystem;
     private readonly StarfieldMod outputMod;
     private readonly ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;

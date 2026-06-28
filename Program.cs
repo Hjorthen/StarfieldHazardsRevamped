@@ -7,6 +7,7 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Environments;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
+using Mutagen.Bethesda.Plugins.Order;
 using Mutagen.Bethesda.Starfield;
 using Noggog;
 using OneOf.Types;
@@ -29,6 +30,11 @@ var mapper = new HazardsMapper(
 var hazardMod = new StarfieldMod("MyMod.esp", StarfieldRelease.Starfield);
 var hazardSystem = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
 
+var loadOrderWithHazards = priorityOrder.Concat(new List<IModListingGetter<IStarfieldModGetter>> {new ModListing<IStarfieldModGetter>(hazardMod.ModKey, hazardMod, enabled: true)});
+linkCache = loadOrderWithHazards.ToImmutableLinkCache();
+hazardSystem.SetLinkCache(linkCache);
+
+HazardSystemArmorUpgrades.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardSystemItemsPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
 HazardSystemScalingResistancesPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
