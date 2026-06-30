@@ -184,6 +184,7 @@ public class HazardsSystemSpellsPatcher
         Console.WriteLine("Patching spell " + record.EditorID);
         var patch = outputMod.Spells.GetOrAddAsOverride(record);
 
+        // Keyword is needed by the scaling resistance damage perk. 
         patch.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
 
         foreach(var effect in patch.Effects)
@@ -206,6 +207,8 @@ public class HazardsSystemSpellsPatcher
             {
                 patch.Type = Spell.SpellType.Disease;
                 effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
+                // Make the hazard more deadly, lowering the time you can stay with low resistances
+                effect.Data.Magnitude = 4 * effect.Data.Magnitude;
             }
         }
     }
