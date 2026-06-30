@@ -1,11 +1,12 @@
 using Mutagen.Bethesda;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Cache.Internals.Implementations;
 using Mutagen.Bethesda.Starfield;
 
 interface IItemAssets
 {
     string Model { get; } 
-    SoundReference GetUseSound(ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache);
+    SoundReference GetUseSound(ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache);
 }
 class AirSieve : IItemAssets
 {
@@ -15,7 +16,7 @@ class AirSieve : IItemAssets
 
     public string UseSound => "ITEM_USE_Aid_MedStim";
 
-    public SoundReference GetUseSound(ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public SoundReference GetUseSound(ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         return baseGameLinkCache.Resolve<IIngestibleGetter>("Aid_EmergencyKit").ConsumeSound.DeepCopy();
     }
@@ -26,7 +27,7 @@ class BucketOfPaste : IItemAssets
     public string Model => @"Landscape\Flora\Ingredients\FloraIngredientSap01.nif";
 
 
-    public SoundReference GetUseSound(ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public SoundReference GetUseSound(ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         return baseGameLinkCache.Resolve<IIngestibleGetter>("Food_Craft_Meatloaf").ConsumeSound.DeepCopy();
     }
@@ -36,7 +37,7 @@ class RadiationMesh : IItemAssets
 {
     public string Model => @"SetDressing\manufactured_goods\Mfg_Polytextile.nif";
 
-    public SoundReference GetUseSound(ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public SoundReference GetUseSound(ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         return baseGameLinkCache.Resolve<IIngestibleGetter>("Aid_Affl_Bandages_02").ConsumeSound.DeepCopy();
     }
@@ -46,7 +47,7 @@ class ItemBatteryPack : IItemAssets
 {
     public string Model => @"Items\FoodDrink_Set\FoodDrink_Set_PortableKit_RoundTinStack01.nif";
 
-    public SoundReference GetUseSound(ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public SoundReference GetUseSound(ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         return baseGameLinkCache.Resolve<IMiscItemGetter>("UC07_Microcell").PickupSound!.DeepCopy();
     }
@@ -57,16 +58,16 @@ public class HazardSystemItemsPatcher
 {
     private readonly HazardSystem hazardSystem;
     private readonly StarfieldMod outputMod;
-    private readonly ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
+    private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
 
-    private HazardSystemItemsPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    private HazardSystemItemsPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         this.hazardSystem = hazardSystem;
         this.outputMod = outputMod;
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         var patcher = new HazardSystemItemsPatcher(hazardSystem, outputMod, baseGameLinkCache);
         patcher.PatchInternal();

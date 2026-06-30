@@ -27,14 +27,141 @@ public class HazardSystemArmorUpgrades
         patcher.PatchInternal();
     }
 
+    private void AddArmorUpgrade(string upgradeSlot, string armorPart, string upgradeName, string hazardType, int resistanceBoost, string templateEditorId, List<(string Material, uint Quantity)> craftingMaterials)
+    {
+        var builder = ArmorUpgradePatcher
+        .Create(templateEditorId, baseGameLinkCache)
+        .WithUpgradeDisplayDescription(upgradeName, $"{hazardType} resistance increased")
+        .WithWorkbenchUpgradeDisplay($"Increase {hazardType} resistance by {resistanceBoost}%")
+        .WithUpgradePropertyIncreaseAV(hazardSystem.GetResistanceAV(hazardType), resistanceBoost);
+        foreach(var (Material, Quantity) in craftingMaterials)
+        {
+            builder.WithCraftingComponent(Material, Quantity);
+        }
+        
+        
+        
+        builder.Build(outputMod, $"{armorPart}_Mod_{upgradeSlot}_Resist_{hazardType}");
+    }
     private void PatchInternal()
     {
-        ArmorUpgradePatcher
-        .Create("co_mod_Armor_Spacesuit_Slot04_CarryWeight", baseGameLinkCache)
-        .WithUpgradeDisplayDescription("Dust scrubbers", "Radiation resistance increased")
-        .WithWorkbenchUpgradeDisplay("Increase radiation resistance by 15%")
-        .WithUpgradePropertyIncreaseAV(hazardSystem.GetResistanceAV("Radiation"), 15)
-        .Build(outputMod);
+        // Helmet: Radiation, Corrosive, Airborne
+        // Suit: Thermal, Radiation, Corrosive
+        // Pack: Thermal, Airborne
+
+        // HELMETS
+        AddArmorUpgrade(
+            upgradeSlot: "01", armorPart : "Helmet", 
+            upgradeName: "Particle Scrubbers",  
+            hazardType: "Radiation", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Helmet_Slot01_DamageResist_EM",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("OrgCommonSealant", 1),
+                ("InorgUncommonFluorine", 1),
+                ("InorgUncommonBenzene", 1),
+                ("Mfg_Tier02_PositronBattery", 1)
+            }
+        );
+
+        AddArmorUpgrade(
+            upgradeSlot: "01", armorPart : "Helmet", 
+            upgradeName: "HEPA Filter",  
+            hazardType: "Airborne", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Helmet_Slot01_DamageResist_EM",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("OrgCommonFiber", 1),
+                ("Mfg_Tier01_AdaptiveFrame", 1),
+                ("OrgUncommonAntimicrobial", 1),
+                ("OrgRareAnalgesic", 1)
+            }
+        );
+
+        AddArmorUpgrade(
+            upgradeSlot: "03", armorPart : "Helmet", 
+            upgradeName: "Corrosive Shielding",  
+            hazardType: "Corrosive", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Helmet_Slot03_DamageResist_Heavy",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("InorgCommonLead", 1),
+                ("InorgRareTetrafluorides", 1),
+                ("InorgUncommonBeryllium", 1),
+                ("OrgUncommonPigment", 1)
+            }
+        );
+
+        // SUITS
+        AddArmorUpgrade(
+            upgradeSlot: "03", armorPart : "Spacesuit", 
+            upgradeName: "PFXA Plating",  
+            hazardType: "Corrosive", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Spacesuit_Slot03_DamageResist_Heavy",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("InorgCommonLead", 1),
+                ("Mfg_Tier02_SemimetalWafer", 1),
+                ("InorgUncommonBeryllium", 1),
+                ("Mfg_Tier01_AusteniticManifold", 1)
+            }
+        );
+
+        AddArmorUpgrade(
+            upgradeSlot: "02", armorPart : "Spacesuit", 
+            upgradeName: "Heat Exchanger",  
+            hazardType: "Thermal", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Spacesuit_Slot02_ReducedExplosive",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("InorgCommonCopper", 1),
+                ("Mfg_Tier01_AdaptiveFrame", 1),
+                ("Mfg_Tier02_PositronBattery", 1),
+                ("InorgUncommonBenzene", 1)
+            }
+        );
+        AddArmorUpgrade(
+            upgradeSlot: "04", armorPart : "Spacesuit", 
+            upgradeName: "Heavy water tubing",  
+            hazardType: "Radiation", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Armor_Spacesuit_Slot04_CarryWeight",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("InorgCommonWater", 1),
+                ("Mfg_Tier01_MagPressureTank", 1),
+                ("Mfg_Tier01_ReactiveGauge", 1),
+                ("Mfg_Tier02_MolecularSieve", 1)
+            }
+        );
+
+        // PACKS
+        AddArmorUpgrade(
+            upgradeSlot: "02", armorPart : "Pack", 
+            upgradeName: "Exhaust Vents",  
+            hazardType: "Thermal", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Backpack_Slot02_Regenerate",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("InorgCommonCopper", 1),
+                ("Mfg_Tier01_AdaptiveFrame", 1),
+                ("Mfg_Tier02_ParamagnonSuperconductor", 1),
+                ("Mfg_Tier01_CommRelay", 1)
+            }
+        );
+
+        AddArmorUpgrade(
+            upgradeSlot: "01", armorPart : "Pack", 
+            upgradeName: "Photocatalytic Chamber",  
+            hazardType: "Airborne", resistanceBoost: 15, 
+            templateEditorId: "co_mod_Backpack_Slot01_Oxygen",
+            craftingMaterials: new List<(string Material, uint quantity)>
+            {
+                ("OrgUncommonMembrane", 1),
+                ("Mfg_Tier01_MagPressureTank", 1),
+                ("OrgUncommonAntimicrobial", 1),
+                ("OrgRareAdhesive", 1)
+            }
+        );
     }
 }
 
@@ -76,7 +203,7 @@ public class ArmorUpgradePatcher
     /// </summary>
     public ArmorUpgradePatcher WithCraftingComponent(string componentMiscItemEditorName, uint requiredCount)
     {
-        if(!linkCache.TryResolveIdentifier<MiscItem>(componentMiscItemEditorName, out var miscItem))
+        if(!linkCache.TryResolveIdentifier<IMiscItemGetter>(componentMiscItemEditorName, out var miscItem))
             throw new ArgumentException($"The given MiscItem component could not be found using editor id '{componentMiscItemEditorName}'. Its either the wrong form type or doesn't exist.");
 
         var entry = new ConstructibleObjectComponent
@@ -119,7 +246,7 @@ public class ArmorUpgradePatcher
         return this;
     }
 
-    public IConstructibleObjectGetter Build(IStarfieldMod targetMod)
+    public IConstructibleObjectGetter Build(IStarfieldMod targetMod, string editorNamePrefix)
     {
         var templateConstructibleObject = linkCache.Resolve<IConstructibleObjectGetter>(templateConstructibleObjectEditorId);
         var createdModFormKey = templateConstructibleObject.CreatedObject.FormKey;
@@ -131,14 +258,15 @@ public class ArmorUpgradePatcher
         // The property-granting OMOD: Uses Properties to define which buffs to give
         var propertyGivingObjectMod = linkCache.Resolve<IArmorModificationGetter>(propertyGivingObjectModLink.FormKey);
 
-        var newPropertyMod = CreateNewPropertyModFrom(propertyGivingObjectMod, targetMod);
-        var newDisplayedObjectMod = CreateNewDisplayObjectModFrom(displayedObjectMod, newPropertyMod, targetMod);
-        return CreateNewConstructibleObject(templateConstructibleObject, newDisplayedObjectMod, targetMod);
+        var newPropertyMod = CreateNewPropertyModFrom(propertyGivingObjectMod, targetMod, editorNamePrefix);
+        var newDisplayedObjectMod = CreateNewDisplayObjectModFrom(displayedObjectMod, newPropertyMod, targetMod, editorNamePrefix);
+        return CreateNewConstructibleObject(templateConstructibleObject, newDisplayedObjectMod, targetMod, editorNamePrefix);
     }
 
-    private ArmorModification CreateNewPropertyModFrom(IArmorModificationGetter baseMod, IStarfieldMod targetMod)
+    private ArmorModification CreateNewPropertyModFrom(IArmorModificationGetter baseMod, IStarfieldMod targetMod, string editorNamePrefix)
     {
-        var clonedMod = (ArmorModification)targetMod.ObjectModifications.DuplicateInAsNewRecord<AObjectModification, IArmorModificationGetter, IAObjectModificationGetter>(baseMod);
+        string editorName = editorNamePrefix + "PropertyMod";
+        var clonedMod = (ArmorModification)targetMod.ObjectModifications.DuplicateInAsNewRecord<AObjectModification, IArmorModificationGetter, IAObjectModificationGetter>(baseMod, editorName);
 
         clonedMod.Properties.Clear();
         clonedMod.Properties.AddRange(upgradeProperties);
@@ -146,9 +274,10 @@ public class ArmorUpgradePatcher
         return clonedMod;
     }
 
-    private ArmorModification CreateNewDisplayObjectModFrom(IArmorModificationGetter baseMod, ArmorModification targetPropertyMod, IStarfieldMod targetMod)
+    private ArmorModification CreateNewDisplayObjectModFrom(IArmorModificationGetter baseMod, ArmorModification targetPropertyMod, IStarfieldMod targetMod, string editorNamePrefix)
     {
-        var clonedMod = (ArmorModification)targetMod.ObjectModifications.DuplicateInAsNewRecord<AObjectModification, IArmorModificationGetter, IAObjectModificationGetter>(baseMod);
+        string editorName = editorNamePrefix + "DisplayMod";
+        var clonedMod = (ArmorModification)targetMod.ObjectModifications.DuplicateInAsNewRecord<AObjectModification, IArmorModificationGetter, IAObjectModificationGetter>(baseMod, editorName);
 
         clonedMod.Name = armorModDisplayName;
         clonedMod.Description = armorModDisplayDescription;
@@ -164,12 +293,14 @@ public class ArmorUpgradePatcher
         return clonedMod;
     }
 
-    private ConstructibleObject CreateNewConstructibleObject(IConstructibleObjectGetter baseObject, ArmorModification newDisplayedObjectMod, IStarfieldMod targetMod)
+    private ConstructibleObject CreateNewConstructibleObject(IConstructibleObjectGetter baseObject, ArmorModification newDisplayedObjectMod, IStarfieldMod targetMod, string editorNamePrefix)
     {
-        var clonedObject = targetMod.ConstructibleObjects.DuplicateInAsNewRecord(baseObject);
+        string editorName = editorNamePrefix + "ConstructableObject";
+        var clonedObject = targetMod.ConstructibleObjects.DuplicateInAsNewRecord(baseObject, editorName);
         clonedObject.CreatedObject.SetTo(newDisplayedObjectMod.FormKey);
         clonedObject.Description = armorWorkbenchUpgradeDescription;
-
+        // No requirements to build.. for now
+        clonedObject.Conditions.Clear();
         clonedObject.ConstructableComponents.Clear();
         clonedObject.ConstructableComponents.AddRange(craftingComponents);
 

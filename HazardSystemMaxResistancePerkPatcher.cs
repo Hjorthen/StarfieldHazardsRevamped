@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Cache.Internals.Implementations;
 using Mutagen.Bethesda.Starfield;
 using Noggog;
@@ -11,16 +12,16 @@ public class HazardSystemMaxResistancePerkPatcher
     private IMagicEffectGetter? removeResistanceCapSpellEffect;
     private readonly HazardSystem hazardSystem;
     private readonly StarfieldMod outputMod;
-    private readonly ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
+    private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
 
-    private HazardSystemMaxResistancePerkPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    private HazardSystemMaxResistancePerkPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         this.hazardSystem = hazardSystem;
         this.outputMod = outputMod;
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         var patcher = new HazardSystemMaxResistancePerkPatcher(hazardSystem, outputMod, baseGameLinkCache);
         patcher.PatchInternal();
@@ -38,7 +39,7 @@ public class HazardSystemMaxResistancePerkPatcher
     private void PatchConditioningPerk()
     {
         // Dictionary for quick access to our resistance boost effects
-        var resistances = hazardSystem.HazardTypes.ToDictionary(k => k, CreateResistanceBoostEffect);
+        var resistances = hazardSystem.HazardTypes.ToDictionary(k => k.ToLower(), CreateResistanceBoostEffect);
         var maxEffectUnlock = CreateUnlockMaxResistanceEffect();
 
         var perk  = outputMod.Perks.GetOrAddAsOverride(baseGameLinkCache.Resolve<IPerkGetter>("Skill_EnvironmentalConditioning"));

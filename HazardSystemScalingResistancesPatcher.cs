@@ -1,6 +1,7 @@
 using System;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
+using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Cache.Internals.Implementations;
 using Mutagen.Bethesda.Starfield;
 using Noggog;
@@ -10,16 +11,16 @@ public class HazardSystemScalingResistancesPatcher
     //835
     private readonly HazardSystem hazardSystem;
     private readonly StarfieldMod outputMod;
-    private readonly ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
+    private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
 
-    private HazardSystemScalingResistancesPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    private HazardSystemScalingResistancesPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         this.hazardSystem = hazardSystem;
         this.outputMod = outputMod;
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ImmutableLoadOrderLinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         var patcher = new HazardSystemScalingResistancesPatcher(hazardSystem, outputMod, baseGameLinkCache);
         patcher.PatchInternal();
