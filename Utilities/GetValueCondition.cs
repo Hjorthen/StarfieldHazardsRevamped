@@ -1,3 +1,5 @@
+using System;
+using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
 
@@ -7,7 +9,11 @@ public abstract class ConditionBuilder<T> where T : ConditionBuilder<T>
     private CompareOperator compareOperator;
     private Condition.Flag conditionFlag = 0;
 
-
+    public T GreaterThan()
+    {
+        compareOperator = CompareOperator.GreaterThan;
+        return (T)this;
+    }
     public T LessThan()
     {
         compareOperator = CompareOperator.LessThan;
@@ -33,6 +39,7 @@ public abstract class ConditionBuilder<T> where T : ConditionBuilder<T>
         return new ConditionFloat()
         {
             CompareOperator = compareOperator,
+            Flags = conditionFlag,
             Data = CreateData(),
             ComparisonValue = targetValue
         };
@@ -61,11 +68,38 @@ public class HasMagicEffect : ConditionBuilder<HasMagicEffect>
     }
 }
 
+public class GetConditionFormCondition : ConditionBuilder<GetConditionFormCondition>
+{
+    private IConditionRecordGetter conditionForm;
+
+    public static GetConditionFormCondition With(IConditionRecordGetter conditionRecord)
+    {
+        return new GetConditionFormCondition(conditionRecord);
+    }
+
+    private GetConditionFormCondition(IConditionRecordGetter targetForm)
+    {
+        conditionForm = targetForm;
+    }
+
+    protected override ConditionData CreateData()
+    {
+        var data = new IsTrueForConditionFormConditionData();
+        data.FirstParameter.Link.SetTo(conditionForm);
+        return data;
+    }
+}
+
 public class GetValueCondition : ConditionBuilder<GetValueCondition>
 {
-    private IActorValueInformationGetter parameterValue;
+    private FormLink<IActorValueInformationGetter> parameterValue;
 
     public static GetValueCondition With(IActorValueInformationGetter targetValue)
+    {
+        return With(new FormLink<IActorValueInformationGetter>(targetValue));
+    }
+
+    public static GetValueCondition With(FormLink<IActorValueInformationGetter> targetValue)
     {
         return new GetValueCondition(targetValue);
     }
@@ -74,12 +108,12 @@ public class GetValueCondition : ConditionBuilder<GetValueCondition>
     {
         return new GetValueConditionData()
         {
-            FirstParameter = new FormLink<IActorValueInformationGetter>(parameterValue)
+            FirstParameter = parameterValue
         };
 
     }
 
-    private GetValueCondition(IActorValueInformationGetter targetValue)
+    private GetValueCondition(FormLink<IActorValueInformationGetter> targetValue)
     {
         this.parameterValue = targetValue;
     }

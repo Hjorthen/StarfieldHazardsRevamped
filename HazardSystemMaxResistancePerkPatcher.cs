@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
@@ -29,13 +31,42 @@ public class HazardSystemMaxResistancePerkPatcher
     private void PatchInternal()
     {
         PatchConditioningPerk();
-        foreach(string hazardType in hazardSystem.HazardTypes)
+        var debuffAbilities = AddDebuffAbilities();
+        AddMaxResistanceActivator(debuffAbilities);
+    }
+
+    private void AddMaxResistanceActivator(IList<Spell> debuffAbilities)
+    {
+        var perk = outputMod.Perks.AddNew("Env_Perk_MaxResistance_Activator");
+        perk.Name = "Caps max resistance to 85%";
+        perk.Categroy = PerkCategory.None;
+        perk.Flags = Perk.Flag.PcPlayable;
+
+        var perkRank = new PerkRank();
+        foreach(var debuffAbility in debuffAbilities)
+        {
+            perkRank.Effects.Add(new PerkAbilityEffect
+            {
+                Ability = debuffAbility.ToLink(),
+            });
+        }
+
+        perk.Ranks.Add(perkRank);
+    }
+
+    private IList<Spell> AddDebuffAbilities()
+    {
+        var debuffAbilities = new List<Spell>();
+        foreach (string hazardType in hazardSystem.HazardTypes)
         {
             var debuffAbility = AddMaxResistanceAbility(hazardType);
             PatchHazardSoakMax(hazardType);
+            debuffAbilities.Add(debuffAbility);
             Console.WriteLine($"Added debuff ability for {hazardType}: {debuffAbility.FormKey}");
         }
+        return debuffAbilities;
     }
+
     private void PatchConditioningPerk()
     {
         // Dictionary for quick access to our resistance boost effects
@@ -56,27 +87,32 @@ public class HazardSystemMaxResistancePerkPatcher
     {
         var mf = outputMod.MagicEffects.AddNew("Resist_Unlock_Max_Resistance_Marker");
         mf.CastType = CastType.ConstantEffect;
-        mf.ActorValue1.SetToNull();
+        // Creation Engine needs a value to be set. Setting it to first available, won't have an effect (effect is set to 0 magnitude)
+        // may change if I figure out how..
+        mf.ActorValue2.SetTo(hazardSystem.GetResistanceAV(hazardSystem.HazardTypes.First()));
         mf.Name = "Maximum resistance increased to 95%";
         mf.Description = "You have mastered the elements and are able to push your spacesuit well beyond the manufactorer's specs.";
         mf.Archetype = new MagicEffectArchetype()
         {
             Type = MagicEffectArchetype.TypeEnum.ValueModifier
         };
-        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEffect;
+        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEffect | MagicEffect.Flag.NoMagnitude;
+        mf.DATADataTypeState |= MagicEffect.DATADataType.Break0;
         return mf;
     }
     private IMagicEffect CreateResistanceBoostEffect(string hazardType)
     {
         var mf = outputMod.MagicEffects.AddNew("Resist_Boost_" + hazardType);
         mf.CastType = CastType.ConstantEffect;
-        mf.ActorValue1.SetTo(hazardSystem.GetResistanceAV(hazardType));
+        mf.ActorValue2.SetTo(hazardSystem.GetResistanceAV(hazardType));
         mf.Archetype = new MagicEffectArchetype()
         {
             Type = MagicEffectArchetype.TypeEnum.ValueModifier
         };
         mf.ResistValue.SetToNull();
         mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEffect | MagicEffect.Flag.Recover | MagicEffect.Flag.HideInUI;
+
+        mf.DATADataTypeState |= MagicEffect.DATADataType.Break0;
 
         return mf;
     }
@@ -127,15 +163,15 @@ public class HazardSystemMaxResistancePerkPatcher
     private MagicEffect CreateCorrectionTierEffect(string hazardType, IActorValueInformationGetter correctionTierAV)
     {
         var mf = outputMod.MagicEffects.AddNew("Resist_Correction_Tier_Effect_" + hazardType);
+        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.Recover | MagicEffect.Flag.NoDuration | MagicEffect.Flag.Painless | MagicEffect.Flag.HideInUI | MagicEffect.Flag.NoHitEvent;
         mf.CastType = CastType.ConstantEffect;
-        mf.ActorValue1.SetTo(correctionTierAV);
+        mf.ActorValue2.SetTo(correctionTierAV);
         mf.Archetype = new MagicEffectArchetype()
         {
             Type = MagicEffectArchetype.TypeEnum.ValueModifier
         };
-        // Ensure we don't have some random resistance on this effect
-        mf.ResistValue.SetToNull();
-        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEvent | MagicEffect.Flag.Recover;
+
+        mf.DATADataTypeState |= MagicEffect.DATADataType.Break0;
 
         return mf;
     }
@@ -143,15 +179,15 @@ public class HazardSystemMaxResistancePerkPatcher
     private MagicEffect CreateResistanceDebuffEffect(string hazardType, IActorValueInformationGetter resistanceTierAV)
     {
         var mf = outputMod.MagicEffects.AddNew("Resist_Correction_Debuff_Effect_" + hazardType);
+        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.Recover | MagicEffect.Flag.NoDuration | MagicEffect.Flag.Painless | MagicEffect.Flag.Detrimental;
         mf.CastType = CastType.ConstantEffect;
-        mf.ActorValue1.SetTo(resistanceTierAV);
+        mf.ActorValue2.SetTo(resistanceTierAV);
         mf.Archetype = new MagicEffectArchetype()
         {
             Type = MagicEffectArchetype.TypeEnum.PeakValueModifier
         };
-        // Ensure we don't have some random resistance on this effect
-        mf.ResistValue.SetToNull();
-        mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEvent | MagicEffect.Flag.Recover | MagicEffect.Flag.Detrimental;
+
+        mf.DATADataTypeState |= MagicEffect.DATADataType.Break0;
 
         return mf;
     }
@@ -167,6 +203,8 @@ public class HazardSystemMaxResistancePerkPatcher
     private Spell AddMaxResistanceAbility(string hazardType)
     {
         var correctionAV = outputMod.ActorValueInformation.AddNew("Resist_Correction_AV_" + hazardType);
+        correctionAV.Type = ActorValueInformation.Types.Variable;
+        correctionAV.DefaultValue = 0;
         var setTierMF = CreateCorrectionTierEffect(hazardType, correctionAV);
         var resistanceAV = HazardTypeToResistanceValue(hazardType);
         var resistanceDebuffSpell = CreateResistanceDebuffEffect(hazardType, resistanceAV);
@@ -181,6 +219,10 @@ public class HazardSystemMaxResistancePerkPatcher
             CreateDispellEffect(resistanceAV, setTierMF),
             CreateEffectFor(90, 2, resistanceAV, correctionAV, setTierMF),
             CreateEffectFor(95, 3, resistanceAV, correctionAV, setTierMF),
+            CreateEffectFor(100, 4, resistanceAV, correctionAV, setTierMF),
+            CreateEffectFor(105, 5, resistanceAV, correctionAV, setTierMF),
+            CreateEffectFor(110, 6, resistanceAV, correctionAV, setTierMF),
+            CreateEffectFor(115, 7, resistanceAV, correctionAV, setTierMF),
         ]);
 
         // Add MF that actually correct the resistance based on the tier.
@@ -189,6 +231,10 @@ public class HazardSystemMaxResistancePerkPatcher
             CreateTierDebuff(1, 0, correctionAV, resistanceDebuffSpell),
             CreateTierDebuff(2, 5, correctionAV, resistanceDebuffSpell),
             CreateTierDebuff(3, 10, correctionAV, resistanceDebuffSpell),
+            CreateTierDebuff(4, 15, correctionAV, resistanceDebuffSpell),
+            CreateTierDebuff(5, 20, correctionAV, resistanceDebuffSpell),
+            CreateTierDebuff(6, 25, correctionAV, resistanceDebuffSpell),
+            CreateTierDebuff(7, 30, correctionAV, resistanceDebuffSpell),
         ]);
 
         return debuffSpell;

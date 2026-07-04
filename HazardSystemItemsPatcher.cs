@@ -126,6 +126,8 @@ public class HazardSystemItemsPatcher
         mf.ActorValue2.SetTo(hazardSystem.GetSoakAV(hazardType));
         mf.Name = name;
         mf.Description = description;
+
+        mf.DATADataTypeState |= MagicEffect.DATADataType.Break0;
         return mf;
     }
 }

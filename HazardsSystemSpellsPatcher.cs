@@ -207,8 +207,6 @@ public class HazardsSystemSpellsPatcher
             {
                 patch.Type = Spell.SpellType.Disease;
                 effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
-                // Make the hazard more deadly, lowering the time you can stay with low resistances
-                effect.Data.Magnitude = 4 * effect.Data.Magnitude;
             }
         }
     }

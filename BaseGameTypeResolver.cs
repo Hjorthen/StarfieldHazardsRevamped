@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Plugins.Records;
@@ -20,11 +22,11 @@ public class BaseGameTypeResolver
             return GetApplyEnvironmentDamageConditionRecord().FormKey;
         }
     }
-    private FormKey ENV_Damage_Soak_FormKey
+    public FormLink<IActorValueInformationGetter> ENV_Damage_Soak_AV
     {
         get
         {
-            return new FormKey(new ModKey("Starfield", ModType.Master), 787); //linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Damage_Soak");
+            return new FormLink<IActorValueInformationGetter>(new FormKey(new ModKey("Starfield", ModType.Master), 787)); //linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Damage_Soak");
         }
     }
 
@@ -110,6 +112,15 @@ public class BaseGameTypeResolver
     {
         return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SPELL_ApplyEnvironmentalDamage");
     }
+    public IEnumerable<IGlobalGetter> GetElementalDamageMagnitudeValues()
+    {
+        string[] globalsToPatch = ["PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_1", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_2", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_3", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_4"];
+
+        foreach(var editorId in globalsToPatch)
+        {
+            yield return linkCache.Resolve<IGlobalGetter>(editorId);
+        }
+    }
     public FormKey GetDamageTypeKeyword(string hazardType)
     {
         switch(hazardType)
@@ -149,7 +160,7 @@ public class BaseGameTypeResolver
 
     public bool IsConditionTargetingDamageSoak(IConditionGetter condition)
     {
-        return IsConditionTargetingFormKey(condition, ENV_Damage_Soak_FormKey);
+        return IsConditionTargetingFormKey(condition, ENV_Damage_Soak_AV.FormKey);
     }
     public bool IsConditionTargetingDamageSoakForm(IConditionGetter condition)
     {
@@ -212,7 +223,8 @@ public class BaseGameTypeResolver
     {
         // Target is stored as ActorValue2
         var actorValue2 = magicEffect.ActorValue2;
-        return actorValue2.FormKey == ENV_Damage_Soak_FormKey;
+        var baseSoakAV = ENV_Damage_Soak_AV;
+        return actorValue2.FormKey == baseSoakAV.FormKey;
     }
 
     public string? GetEnvEffectDamageType(IFormKeyGetter link)
@@ -260,6 +272,6 @@ public class BaseGameTypeResolver
 
     public bool IsExtremeEnvironmentEffect(IEffectGetter effect)
     {
-        return effect.BaseEffect.FormKey == ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_FormKey;
+        return effect.BaseEffect.FormKey == GetExtremeEnvironmentEffect().FormKey;
     }
 }
