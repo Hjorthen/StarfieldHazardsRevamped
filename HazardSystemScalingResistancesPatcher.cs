@@ -27,12 +27,35 @@ public class HazardSystemScalingResistancesPatcher
     }
     private void PatchInternal()
     {
-        var perk = outputMod.Perks.AddNew("EnvResistanceBooster");
+        var resistancePerks = hazardSystem.HazardTypes.Select(type => AddHazardResistancePerk(type));
+        var perk  = AddActivatorPerk(resistancePerks);
+        Console.WriteLine("Non-linear resistance activation perk: " + perk.FormKey);
+    }
+
+    // Creates a Perk that when added, activates the given perks. 
+    // That way we only have to control oné perk for enabling the non-linear resistance
+    private Perk AddActivatorPerk(IEnumerable<Perk> perksToActivate)
+    {
+        var perk = outputMod.Perks.AddNew("Env_Perk_HazardResistance_Activator");
+        perk.Name = "Non-linear Hazard Resistance Activation Perk";
+        perk.Description = "Enabled the Non-linear Hazard Resistance system";
+        perk.Categroy = PerkCategory.None;
+        perk.Flags = Perk.Flag.PcPlayable;
+
+        perk.BackgroundSkills.AddRange(perksToActivate.Select(perk => perk.ToLinkGetter<IPerkGetter>()));
+        // CreationKit seems to have an empty Perk rank so do we..
+        perk.Ranks.Add(new PerkRank());
+        return perk;
+    }
+
+    private Perk AddHazardResistancePerk(string hazardType)
+    {
+        var perk = outputMod.Perks.AddNew("Env_Perk_HazardResistance_" + hazardType);
+        perk.Name = "Non-linear Hazard Resistance: " + hazardType;
         perk.Description = "Provides a hidden bonus to hazard resistance";
         perk.Categroy = PerkCategory.None;
         perk.Flags = Perk.Flag.PcPlayable;
 
-        string hazardType = "Radiation";
 
         var perkRank = new PerkRank()
         {
@@ -52,10 +75,8 @@ public class HazardSystemScalingResistancesPatcher
         };
 
         perk.Ranks.Add(perkRank);
-        Console.WriteLine("Resistance booster perk: " + perk.FormKey);
+        return perk;
     }
-
-
 
     private  APerkEffect MakePerkEffect(string hazardType, float modifer, float resistanceMin, float resistanceMax)
     {

@@ -22,6 +22,10 @@ public class HazardsMapper
 
 
 // Rebuilds the HazardsSystem by creating unique Actor-Values for each Hazard type and setting up ConditionForms necessary for the Hazards to be properly utilized
+// Basegame has three hazard types: Extreme Environment, Weather and "Traps" such as vents, toxic pools, etc.
+// Extreme Environments trigger a SPELL: Env_Suppress_ExtremeEnvironment.
+// The spell will damage a suits soak value or players health when empty. It scales based on how many simutainous extreme environment effects that are on the player.
+// One condition ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect I'm not sure why triggers if ever?
 public class HazardsSystemPatcher
 {
     private readonly IReadOnlyCollection<string> hazardTypes;
@@ -53,7 +57,144 @@ public class HazardsSystemPatcher
         envApplyEnvDamageCondition = AddSoakDepletedCondition();
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
         PatchSoakRestoreCondition(soakDamageTakenCondition);
+        // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
+        PatchExtremeEnvironmentDamage();
+        PatchDamageSoakSync();
         return MakeHazardSystem();
+    }
+
+    // Patches Env_Damage_Soak which the base game watches for making the environmental damage icons blink.
+    // The value goes from 100->0 making the icons blink more frequently, the lower the number.
+    private void PatchDamageSoakSync()
+    {
+        var thresholdConditions = CreateThresholdConditions();
+        var damageSoakEffect = AddSoakSyncDamageEffect();
+        var restoreSoakEffect = AddSoakSyncRestoreEffect();
+        AddDamageSoakSyncAbility(thresholdConditions, damageSoakEffect, restoreSoakEffect);
+    }
+
+    private MagicEffect AddSoakSyncRestoreEffect()
+    {
+        var magicEffect = mod.MagicEffects.AddNew("HaOS_SoakSync_Restore_MF");
+        // We need "Recover" such that the value is restored once the debuff wears off
+        magicEffect.Flags = MagicEffect.Flag.HideInUI | MagicEffect.Flag.NoArea;
+        magicEffect.CastType = CastType.ConstantEffect;
+        magicEffect.ActorValue2.SetTo(resolver.ENV_Damage_Soak_AV);
+        magicEffect.Archetype = new MagicEffectArchetype()
+        {
+            Type = MagicEffectArchetype.TypeEnum.ValueModifier
+        };
+
+        magicEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+        return magicEffect;
+    }
+    private MagicEffect AddSoakSyncDamageEffect()
+    {
+        var magicEffect = mod.MagicEffects.AddNew("HaOS_DamageSoak_Sync_MF");
+        // We need "Recover" such that the value is restored once the debuff wears off
+        magicEffect.Flags = MagicEffect.Flag.Detrimental | MagicEffect.Flag.HideInUI | MagicEffect.Flag.NoArea;
+        magicEffect.CastType = CastType.ConstantEffect;
+        magicEffect.ActorValue2.SetTo(resolver.ENV_Damage_Soak_AV);
+        magicEffect.Archetype = new MagicEffectArchetype()
+        {
+            Type = MagicEffectArchetype.TypeEnum.ValueModifier
+        };
+
+        magicEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+        return magicEffect;
+    }
+
+    // Create an ability that damages Env_DamageSoak whenever the new Soak values drop below threshold
+    // Each threshold are added as a condition, with the effect being applied with the magnitude of 
+    // the threshold.
+    private Spell AddDamageSoakSyncAbility(List<(int threshold, ConditionRecord other)> thresholds, IMagicEffectGetter damageEffect, IMagicEffectGetter restoreEffect)
+    {
+        var spell = mod.Spells.AddNew("HaOS_DamageSoak_Sync_Ability");
+        spell.Name = "HaOS DamageSoak Ability";
+
+        for (int i = 0; i < thresholds.Count; i++)
+        {
+            var (threshold, conditionRecord) = thresholds[i];
+            // Previous threshold value, used to calculate the diff between current and past threshold
+            int previousThreshold = (i-1)>=0 ? thresholds[i-1].threshold : 100;
+            int thresholdDifference = previousThreshold - threshold;
+            // We would like to quickly catch up with the sync float
+            // Magnitude depends on the difference between the two thresholds
+            // Thresholds far apart has greater magnitude than those close
+            float magnitude = thresholdDifference / 5.0f;
+            // We don't need to be exact so we keep a "slack" to prevent the damage from overshooting the target and then restore undershoot continously.
+            float previousThresholdWithSlack = previousThreshold - magnitude;
+
+            // If Env_Damage_Soak is currently greater than any of the soak counters,
+            // we damage the value until that is no longer the case
+            var thresholdDamageEffect = new MagicEffectSpellEntryBuilder()
+                .WithBaseEffect(damageEffect)
+                .AddCondition(GetConditionFormCondition.With(conditionRecord).EqualsTo().Value(1))
+                .AddCondition(GetValueCondition.With(resolver.ENV_Damage_Soak_AV).GreaterThan().Value(threshold))
+                .WithMagnitude(magnitude)
+                .Build();
+
+            // If Env_Damage_Soak is currently lower than all the soak counters,
+            // we restore the value until that is no longer the case.
+            // Jumps can happen in case the player uses a restore item.
+            // 
+            // We restore back up to the previous value in case the conditions 
+            // for the _current_ threshold is no longer valid.
+            var thresholdRestoreEffect = new MagicEffectSpellEntryBuilder()
+                .WithBaseEffect(restoreEffect)
+                .AddCondition(GetConditionFormCondition.With(conditionRecord).EqualsTo().Value(0))
+                .AddCondition(GetValueCondition.With(resolver.ENV_Damage_Soak_AV).LessThan().Value(previousThresholdWithSlack))
+                .WithMagnitude(magnitude)
+                .Build();
+
+            spell.Effects.Add(thresholdDamageEffect);
+            spell.Effects.Add(thresholdRestoreEffect);
+        }
+
+        spell.CastType = CastType.ConstantEffect;
+        spell.Type = Spell.SpellType.Ability;
+        spell.Flags = Spell.Flag.IgnoreResistance;
+
+        return spell;
+    }
+
+    // Creates a ConditionRecord that evaluates whether any of the Soak values has 
+    // been lowered to a certain threshold. 
+    private List<(int threshold, ConditionRecord other)> CreateThresholdConditions()
+    {
+        var thresholdConditions = new List<(int threshold, ConditionRecord other)>();
+        foreach(var threshold in new[] {95, 40, 30, 20, 10, 5, 0})
+        {
+            var record = CreateHazardConditionForThreshold(threshold);    
+            thresholdConditions.Add((threshold, record));
+        }
+
+        return thresholdConditions;
+    }
+
+    /// <summary>
+    /// Creates a ConditionRecord that is true if any hazard soak records drop below threshold value. 
+    /// eg. if threshold is 95, if any soak record is below 95 the condition is true. 
+    /// </summary>
+    /// <param name="threshold">Scale from 0..100 for where the treshold should be</param>
+    /// <returns></returns>
+    private ConditionRecord CreateHazardConditionForThreshold(int threshold)
+    {
+        ConditionFormBuilder builder = new();
+        foreach(var (hazardType, AV) in envSoakRecords)
+        {
+            builder.AddGetValueCondition(AV, c => c.LessThan().ValueOr(threshold));
+        }
+        return builder.Build(mod, "Soak_Condition_Threshold_" + threshold);
+    }
+
+    private void PatchExtremeEnvironmentDamage()
+    {
+        foreach(var value in resolver.GetElementalDamageMagnitudeValues())
+        {
+            var globalOverride = mod.Globals.GetOrAddAsOverride(value); 
+            globalOverride.Data = value.Data!.Value * 4;
+        }
     }
 
     private HazardSystem MakeHazardSystem()
