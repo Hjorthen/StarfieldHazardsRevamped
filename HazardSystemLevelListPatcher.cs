@@ -1,4 +1,6 @@
 
+using System.Collections;
+using System.Collections.Generic;
 using HazardOverhaul.Builders;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins.Cache;
@@ -25,34 +27,87 @@ public class HazardSystemLevelListPatcher
 
     private void PatchInternal()
     {
+        string[] majorEditorIds = new string[]
+        {
+            "HaOS_Item_Restore_Major_Radiation",
+            "HaOS_Item_Restore_Major_Thermal",
+            "HaOS_Item_Restore_Major_Corrosive",
+            "HaOS_Item_Restore_Major_Airborne"
+        };
+
+        string[] minorEditorIds = new string[]
+        {
+            "HaOS_Item_Restore_Minor_Radiation",
+            "HaOS_Item_Restore_Minor_Thermal",
+            "HaOS_Item_Restore_Minor_Corrosive",
+            "HaOS_Item_Restore_Minor_Airborne"
+        };
+
+        AddMajorAidItems(majorEditorIds);
+        AddMinorAidItems(minorEditorIds);
+    }
+
+    private void AddMinorAidItems(IEnumerable<string> minorAidItemList)
+    {
+        var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
+        foreach (var item in minorAidItemList)
+        {
+            var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
+            // 1-2 each pick for variation, 1.5 average
+            builder.AddEntry(ingestible, 1, 1);
+            builder.AddEntry(ingestible, 1, 2);
+        }
+        var randomRestoreLevelItem = builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak_Minor");
+
+        // Small chance for lots at the vendor
+        builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true).WithChanceNone(50);
+        builder.AddEntry(randomRestoreLevelItem, count: 5);
+        var paydayItemList = builder.Build(outputMod, "HaOS_LLS_Aid_BonusItems_50");
+
+        // Chance for extras at a vendor
+        builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true).WithChanceNone(40);
+        builder.AddEntry(randomRestoreLevelItem, count: 3);
+        builder.AddEntry(paydayItemList, count: 1);
+        var extraItemsChanceList = builder.Build(outputMod, "HaOS_LLS_Aid_BonusItems_40");
+
+        builder = LeveledItemBuilder.Create().SetFlag(LeveledItem.Flag.UseAll, true);
+        builder.AddEntry(randomRestoreLevelItem, count: 4);
+        builder.AddEntry(extraItemsChanceList, count: 1);
+        var vendorList = builder.Build(outputMod, "HaOS_LLS_Aid_Vendor");
+
+        builder = LeveledItemBuilder.Create().SetFlag(LeveledItem.Flag.UseAll, true);
+        builder.AddEntry(vendorList, count: 1);
+
+        Inject("LLS_Vendor_ShipRepairKits", builder);
+
+        // Inject into random containers
+        
+        builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
+        builder.AddEntry(randomRestoreLevelItem, count: 1);
+
+        Inject("LL_Loot_Mfg_Small_Leveled", builder);
+    }
+
+    private void AddMajorAidItems(IEnumerable<string> majorAidItemList)
+    {
         var builder = LeveledItemBuilder.Create().CalculateFromAllLevels(true).CalculateForEachItemInCount(true);
 
-        foreach(var item in new[]{"HS_Item_Restore_Radiation", "HS_Item_Restore_Thermal", "HS_Item_Restore_Corrosive","HS_Item_Restore_Airborne"})
+        foreach (var item in majorAidItemList)
         {
             var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
             builder.AddEntry(ingestible, 1, 1);
         }
 
-        var randomRestoreLevelItem = builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak");
-        
+        var randomRestoreLevelItem = builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak_Major");
+
         builder = LeveledItemBuilder.Create().CalculateFromAllLevels(true).CalculateForEachItemInCount(true);
-        builder.AddEntry(randomRestoreLevelItem);
-        
+        builder.AddEntry(randomRestoreLevelItem, count: 2);
+
 
         // Outlands and other stores
         Inject("LL_Vendor_Outfitter_AidChems_50", builder);
-        // List that seems to spawn weapons in containers found here and there..
-        Inject("LL_Loot_Legendary_Human_Rank_1", builder);
-        
-
-        //var radiationRestoreMf = AddSoakRestoreMagicEffect("Radiation", "HS_Restore_Radiation_Soak", "", "Restore <mag> of radiation suit integrity");
-        //AddItem("Radiation Mesh Shield", "HS_Item_Restore_Radiation", "A lead-alloy mesh designed to soak up radiation, its nano-crystalline structure keeps excess weight to a minimum.", radiationRestoreMf, new RadiationMesh());
-        //var thermalRestoreMf = AddSoakRestoreMagicEffect("Thermal", "HS_Restore_Radiation_Soak", "", "Restore <mag> of thermal suit integrity");
-        //AddItem("Cryo Battery Pack", "HS_Item_Restore_Thermal", "A combined coolant and battery replacement for suit thermal regulators. Engineered to keep its charge under extreme heat - so you can keep your cool.", thermalRestoreMf, new ItemBatteryPack());
-        //var corrosiveRestoreMf = AddSoakRestoreMagicEffect("Corrosive", "HS_Restore_Corrosive_Soak", "", "Restore <mag> of corrosive suit integrity");
-        //AddItem("Deimos CorroGuard", "HS_Item_Restore_Corrosive", "A thick, flowing paste that provides a protective coating. Wear proper protective equipment when applied. May stain materials. Seek nearest medical facility if inhaled.", corrosiveRestoreMf, new BucketOfPaste());
-        //var airborneRestoreMf = AddSoakRestoreMagicEffect("Airborne", "HS_Restore_Airborne_Soak", "", "Restore <mag> of airborne suit integrity");
-        //AddItem("Outland Airfilter", "HS_Item_Restore_Airborne", "A replacement filter for standard issue spacesuits. Breathe the antartic air of old.", airborneRestoreMf, new AirSieve());
+        // Add spawns to big containers
+        Inject("LL_Loot_Misc_Large_Rare", builder);
     }
 
     // Injects the given builder config into an existing record
