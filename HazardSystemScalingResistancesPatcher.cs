@@ -36,7 +36,7 @@ public class HazardSystemScalingResistancesPatcher
 
     private Perk AddHazardResistancePerk(string hazardType)
     {
-        var perk = outputMod.Perks.AddNew("Env_Perk_HazardResistance_" + hazardType);
+        var perk = outputMod.Perks.AddNew("HaOS_Env_Perk_HazardResistance_" + hazardType);
         perk.Name = "Non-linear Hazard Resistance: " + hazardType;
         perk.Description = "Provides a hidden bonus to hazard resistance";
         perk.Categroy = PerkCategory.None;

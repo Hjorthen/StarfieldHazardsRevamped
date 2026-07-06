@@ -51,7 +51,7 @@ public class HazardSystemItemsPatcher
             editorId: "HaOS_Item_Restore_Minor_Radiation"
         );
 
-        var thermalRestoreMf = AddSoakRestoreMagicEffect("Thermal", "HS_Restore_Radiation_Soak", "", "Restore <mag> of thermal suit integrity");
+        var thermalRestoreMf = AddSoakRestoreMagicEffect("Thermal", "HS_Restore_Thermal_Soak", "", "Restore <mag> of thermal suit integrity");
         AddItem(new RestoreItemAppearenceData(
             Name: "Cryo Battery Pack",
             Description: "A combined coolant and battery replacement for suit thermal regulators. Engineered to keep its charge under extreme heat - so you can keep your cool.",

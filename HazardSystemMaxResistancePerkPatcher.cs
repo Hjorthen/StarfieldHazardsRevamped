@@ -129,9 +129,9 @@ public class HazardSystemMaxResistancePerkPatcher
 
         perk.Ranks.AddRange(new [] {
             CreateConditioningRank("Gain 10 resistance to thermal and radiation damage.", 1, resistances["thermal"], resistances["radiation"]),
-            CreateConditioningRank("Gain 10 resistance to airborne and corrosive damage.", 1, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"]),
-            CreateConditioningRank("Your suit might have given up but your body has not. Take less health damage and reduced chance to gain afflictions.",  1, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl),
-            CreateConditioningRank("Gain 10 maximum resistance to all environmental damage.", 1, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl, maxEffectUnlock),
+            CreateConditioningRank("Gain 10 resistance to airborne and corrosive damage.", 2, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"]),
+            CreateConditioningRank("Your suit might have given up but your body has not. Take less health damage and reduced chance to gain afflictions.",  3, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl),
+            CreateConditioningRank("Gain 10 maximum resistance to all environmental damage.", 4, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl, maxEffectUnlock),
         });
 
         removeResistanceCapSpellEffect = maxEffectUnlock;
@@ -146,7 +146,7 @@ public class HazardSystemMaxResistancePerkPatcher
     }
     private IMagicEffect CreateUnlockMaxResistanceEffect()
     {
-        var mf = outputMod.MagicEffects.AddNew("Resist_Unlock_Max_Resistance_Marker");
+        var mf = outputMod.MagicEffects.AddNew("HaOS_Resist_Unlock_Max_Resistance_Marker");
         mf.CastType = CastType.ConstantEffect;
         // Creation Engine needs a value to be set. Setting it to first available, won't have an effect (effect is set to 0 magnitude)
         // may change if I figure out how..
@@ -163,7 +163,7 @@ public class HazardSystemMaxResistancePerkPatcher
     }
     private IMagicEffect CreateResistanceBoostEffect(string hazardType)
     {
-        var mf = outputMod.MagicEffects.AddNew("Resist_Boost_" + hazardType);
+        var mf = outputMod.MagicEffects.AddNew("HaOS_Resist_Buff_" + hazardType);
         mf.CastType = CastType.ConstantEffect;
         mf.ActorValue2.SetTo(hazardSystem.GetResistanceAV(hazardType));
         mf.Archetype = new MagicEffectArchetype()
@@ -196,7 +196,7 @@ public class HazardSystemMaxResistancePerkPatcher
 
     private Spell CreatePerkRankSpell(int rankId, IMagicEffectGetter[] perkEffects)
     {
-        var spell = outputMod.Spells.AddNew("HaOv_EnvironmentalConditioning_Spell_Rank_" + rankId);
+        var spell = outputMod.Spells.AddNew("HaOS_EnvironmentalConditioning_Spell_Rank_" + rankId);
         spell.Name = "Environmental Conditioning Spell " + rankId;
         spell.Type = Spell.SpellType.Ability;
         
@@ -224,7 +224,7 @@ public class HazardSystemMaxResistancePerkPatcher
     // Creates a MagicEffect which sets the value of the actor value tracking which resistance "correction tier" we need to apply
     private MagicEffect CreateCorrectionTierEffect(string hazardType, IActorValueInformationGetter correctionTierAV)
     {
-        var mf = outputMod.MagicEffects.AddNew("Resist_Correction_Tier_Effect_" + hazardType);
+        var mf = outputMod.MagicEffects.AddNew("HaOS_Resist_Correction_Tier_Effect_" + hazardType);
         mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.Recover | MagicEffect.Flag.NoDuration | MagicEffect.Flag.Painless | MagicEffect.Flag.HideInUI | MagicEffect.Flag.NoHitEvent;
         mf.CastType = CastType.ConstantEffect;
         mf.ActorValue2.SetTo(correctionTierAV);
@@ -240,7 +240,7 @@ public class HazardSystemMaxResistancePerkPatcher
 
     private MagicEffect CreateResistanceDebuffEffect(string hazardType, IActorValueInformationGetter resistanceTierAV)
     {
-        var mf = outputMod.MagicEffects.AddNew("Resist_Correction_Debuff_Effect_" + hazardType);
+        var mf = outputMod.MagicEffects.AddNew("HaOS_Resist_Correction_Debuff_Effect_" + hazardType);
         mf.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.Recover | MagicEffect.Flag.NoDuration | MagicEffect.Flag.Painless | MagicEffect.Flag.Detrimental;
         mf.CastType = CastType.ConstantEffect;
         mf.ActorValue2.SetTo(resistanceTierAV);
@@ -264,7 +264,7 @@ public class HazardSystemMaxResistancePerkPatcher
     /// </summary>
     private Spell AddMaxResistanceAbility(string hazardType)
     {
-        var correctionAV = outputMod.ActorValueInformation.AddNew("Resist_Correction_AV_" + hazardType);
+        var correctionAV = outputMod.ActorValueInformation.AddNew("HaOS_Resist_Correction_AV_" + hazardType);
         correctionAV.Type = ActorValueInformation.Types.Variable;
         correctionAV.DefaultValue = 0;
         var setTierMF = CreateCorrectionTierEffect(hazardType, correctionAV);
@@ -272,7 +272,7 @@ public class HazardSystemMaxResistancePerkPatcher
         var resistanceDebuffSpell = CreateResistanceDebuffEffect(hazardType, resistanceAV);
 
 
-        var debuffSpell = outputMod.Spells.AddNew("Resist_Correction_Debuff_Spell_" + hazardType);
+        var debuffSpell = outputMod.Spells.AddNew("HaOS_Resist_Correction_Debuff_Spell_" + hazardType);
         debuffSpell.Type = Spell.SpellType.Ability;
         debuffSpell.Flags = Spell.Flag.IgnoreResistance;
 

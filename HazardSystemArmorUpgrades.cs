@@ -41,7 +41,7 @@ public class HazardSystemArmorUpgrades
         
         
         
-        builder.Build(outputMod, $"{armorPart}_Mod_{upgradeSlot}_Resist_{hazardType}");
+        builder.Build(outputMod, $"HaOS_{armorPart}_Mod_{upgradeSlot}_Resist_{hazardType}");
     }
     private void PatchInternal()
     {

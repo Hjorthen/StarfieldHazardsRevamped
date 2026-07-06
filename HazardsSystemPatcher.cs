@@ -190,7 +190,7 @@ public class HazardsSystemPatcher
         {
             builder.AddGetValueCondition(AV, c => c.LessThan().ValueOr(threshold));
         }
-        return builder.Build(mod, "Soak_Condition_Threshold_" + threshold);
+        return builder.Build(mod, "HaOS_Soak_Condition_Threshold_" + threshold);
     }
 
     private void PatchExtremeEnvironmentDamage()
