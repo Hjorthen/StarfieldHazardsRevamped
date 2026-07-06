@@ -55,7 +55,7 @@ public class BaseGameTypeResolver
     {
         get
         {
-            return linkCache.ResolveIdentifier<IActorValueInformation>("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect");
+            return linkCache.ResolveIdentifier<IMagicEffectGetter>("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect");
         }
     }
     public FormKey ENV_Resist_Thermal_FormKey
@@ -272,6 +272,7 @@ public class BaseGameTypeResolver
 
     public bool IsExtremeEnvironmentEffect(IEffectGetter effect)
     {
-        return effect.BaseEffect.FormKey == GetExtremeEnvironmentEffect().FormKey;
+        var extremeEnvironmentMagicEffect = GetExtremeEnvironmentEffect();
+        return effect.BaseEffect.FormKey == extremeEnvironmentMagicEffect.FormKey;
     }
 }

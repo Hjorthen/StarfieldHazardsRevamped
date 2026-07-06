@@ -193,7 +193,7 @@ public class HazardsSystemPatcher
         return builder.Build(mod, "HaOS_Soak_Condition_Threshold_" + threshold);
     }
 
-    private void PatchExtremeEnvironmentDamage()
+    private void PatchHazardDamage()
     {
         foreach(var value in resolver.GetElementalDamageMagnitudeValues())
         {

@@ -50,7 +50,7 @@ public class HazardsSystemSpellsPatcher
     }
     private MagicEffect CreateExtremeEnvironmentEffect(string hazardType, IMagicEffectGetter effectBase)
     {
-        var effectNew = outputMod.MagicEffects.DuplicateInAsNewRecord(effectBase);
+        var effectNew = outputMod.MagicEffects.DuplicateInAsNewRecord(effectBase, $"{effectBase.EditorID}_{hazardType}");
         effectNew.ActorValue2.SetTo(hazardSystem.GetSoakAV(hazardType));
 
         return effectNew;
@@ -203,10 +203,16 @@ public class HazardsSystemSpellsPatcher
                     resolver.ReplaceConditionTarget(condition, hazardSystem.GetApplyEnvDamageCondition(hazardType));
                 }
             }
-            if(resolver.IsExtremeEnvironmentEffect(effect))
+            if(patch.EditorID.StartsWith("ENV_SuppressSoak_Extreme"))
             {
-                patch.Type = Spell.SpellType.Disease;
-                effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
+                if(resolver.IsExtremeEnvironmentEffect(effect))
+                {
+                    patch.Type = Spell.SpellType.Disease;
+                    // Unset the "Value as Ratio"
+                    effect.EFIF = 0;
+                    effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
+                    effect.Data!.Magnitude = 4.0f;
+                }
             }
         }
     }
