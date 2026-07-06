@@ -32,7 +32,7 @@ public class HazardsSystemPatcher
     private readonly StarfieldMod mod; 
     private readonly BaseGameTypeResolver resolver;
 
-    public static HazardSystem WritePatch(StarfieldMod mod, IReadOnlyCollection<string> hazardTypes, BaseGameTypeResolver resolver)
+    public static (HazardSystem, RequiredSystemRecords) WritePatch(StarfieldMod mod, IReadOnlyCollection<string> hazardTypes, BaseGameTypeResolver resolver)
     {
         var patcher = new HazardsSystemPatcher(mod, hazardTypes, resolver);
         return patcher.PatchInternal();
@@ -50,7 +50,7 @@ public class HazardsSystemPatcher
     Dictionary<string, ConditionRecord> envApplyEnvDamageCondition;
     ConditionRecord soakDamageTakenCondition;
 
-    private HazardSystem PatchInternal()
+    private (HazardSystem, RequiredSystemRecords) PatchInternal()
     {
         envSoakRecords = AddSoakValues();
         envSoakConditions = AddSuitIntegritySoakCounter();
@@ -58,19 +58,24 @@ public class HazardsSystemPatcher
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
         PatchSoakRestoreCondition(soakDamageTakenCondition);
         // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
-        PatchExtremeEnvironmentDamage();
-        PatchDamageSoakSync();
-        return MakeHazardSystem();
+        PatchHazardDamage();
+        var damageSoakSync = PatchDamageSoakSync();
+        var hazardSystem = MakeHazardSystem();
+        var requiredRecords = new RequiredSystemRecords()
+        {
+            Spells = [damageSoakSync]
+        };
+        return (hazardSystem, requiredRecords);
     }
 
     // Patches Env_Damage_Soak which the base game watches for making the environmental damage icons blink.
     // The value goes from 100->0 making the icons blink more frequently, the lower the number.
-    private void PatchDamageSoakSync()
+    private ISpellGetter PatchDamageSoakSync()
     {
         var thresholdConditions = CreateThresholdConditions();
         var damageSoakEffect = AddSoakSyncDamageEffect();
         var restoreSoakEffect = AddSoakSyncRestoreEffect();
-        AddDamageSoakSyncAbility(thresholdConditions, damageSoakEffect, restoreSoakEffect);
+        return AddDamageSoakSyncAbility(thresholdConditions, damageSoakEffect, restoreSoakEffect);
     }
 
     private MagicEffect AddSoakSyncRestoreEffect()

@@ -19,33 +19,20 @@ public class HazardSystemScalingResistancesPatcher
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static RequiredSystemRecords WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         var patcher = new HazardSystemScalingResistancesPatcher(hazardSystem, outputMod, baseGameLinkCache);
-        patcher.PatchInternal();
+        return patcher.PatchInternal();
     }
-    private void PatchInternal()
+    private RequiredSystemRecords PatchInternal()
     {
         var resistancePerks = hazardSystem.HazardTypes.Select(type => AddHazardResistancePerk(type));
-        var perk  = AddActivatorPerk(resistancePerks);
-        Console.WriteLine("Non-linear resistance activation perk: " + perk.FormKey);
+        return new RequiredSystemRecords()
+        {
+            Perks = resistancePerks.ToList()
+        };
     }
 
-    // Creates a Perk that when added, activates the given perks. 
-    // That way we only have to control oné perk for enabling the non-linear resistance
-    private Perk AddActivatorPerk(IEnumerable<Perk> perksToActivate)
-    {
-        var perk = outputMod.Perks.AddNew("Env_Perk_HazardResistance_Activator");
-        perk.Name = "Non-linear Hazard Resistance Activation Perk";
-        perk.Description = "Enabled the Non-linear Hazard Resistance system";
-        perk.Categroy = PerkCategory.None;
-        perk.Flags = Perk.Flag.PcPlayable;
-
-        perk.BackgroundSkills.AddRange(perksToActivate.Select(perk => perk.ToLinkGetter<IPerkGetter>()));
-        // CreationKit seems to have an empty Perk rank so do we..
-        perk.Ranks.Add(new PerkRank());
-        return perk;
-    }
 
     private Perk AddHazardResistancePerk(string hazardType)
     {

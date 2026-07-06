@@ -21,38 +21,23 @@ public class HazardSystemMaxResistancePerkPatcher
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static RequiredSystemRecords WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
         var patcher = new HazardSystemMaxResistancePerkPatcher(hazardSystem, outputMod, baseGameLinkCache);
-        patcher.PatchInternal();
+        return patcher.PatchInternal();
     }
-    private void PatchInternal()
+    private RequiredSystemRecords PatchInternal()
     {
         PatchConditioningPerk();
         var debuffAbilities = AddDebuffAbilities();
-        AddMaxResistanceActivator(debuffAbilities);
-    }
-
-    private void AddMaxResistanceActivator(IList<Spell> debuffAbilities)
-    {
-        var perk = outputMod.Perks.AddNew("Env_Perk_MaxResistance_Activator");
-        perk.Name = "Caps max resistance to 85%";
-        perk.Categroy = PerkCategory.None;
-        perk.Flags = Perk.Flag.PcPlayable;
-
-        var perkRank = new PerkRank();
-        foreach(var debuffAbility in debuffAbilities)
+        return new RequiredSystemRecords()
         {
-            perkRank.Effects.Add(new PerkAbilityEffect
-            {
-                Ability = debuffAbility.ToLink(),
-            });
-        }
-
-        perk.Ranks.Add(perkRank);
+            Spells = debuffAbilities
+        };
     }
 
-    private IList<Spell> AddDebuffAbilities()
+
+    private List<Spell> AddDebuffAbilities()
     {
         var debuffAbilities = new List<Spell>();
         foreach (string hazardType in hazardSystem.HazardTypes)
