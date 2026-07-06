@@ -25,10 +25,11 @@ hazardSystem.SetLinkCache(linkCache);
 
 HazardSystemArmorUpgrades.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardSystemItemsPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
+HazardSystemLevelListPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
+
 HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
 HazardSystemScalingResistancesPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardSystemMaxResistancePerkPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
-HazardSystemLevelListPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 
 
 hazardMod.BeginWrite

@@ -1,11 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
-using Mutagen.Bethesda.Plugins.Cache.Internals.Implementations;
 using Mutagen.Bethesda.Starfield;
 using Noggog;
 
@@ -67,6 +65,70 @@ public class HazardSystemMaxResistancePerkPatcher
         return debuffAbilities;
     }
 
+    private IKeywordGetter GetKeywordEnvironmentalDamage()
+    {
+        return baseGameLinkCache.Resolve<IKeywordGetter>("ENV_EffectTypeEnvironmentalDamage");
+    }
+
+    private IKeywordGetter GetKeywordEnvironmentalDamageSoak()
+    {
+        return baseGameLinkCache.Resolve<IKeywordGetter>("ENV_EffectTypeEnvironmentalDamageSoak");
+    }
+    private PerkCondition CreateIsHazardHealthDamage()
+    {
+        // Index 1 is "Spell"
+        const byte CONDITION_INDEX = 1;
+
+        //ENV_EffectTypeEnvironmentalDamage
+        //ENV_EffectTypeEnvironmentalDamageSoak
+        var isDamageEffectType = new HasKeywordConditionData();
+        isDamageEffectType.RunOnType = Condition.RunOnType.Subject;
+        isDamageEffectType.FirstParameter.Link.SetTo(GetKeywordEnvironmentalDamage());
+
+        var isSoakEffectType = new HasKeywordConditionData();
+        isSoakEffectType.RunOnType = Condition.RunOnType.Subject;
+        isSoakEffectType.FirstParameter.Link.SetTo(GetKeywordEnvironmentalDamageSoak());
+
+
+        return  new PerkCondition()
+        {
+            RunOnTabIndex = CONDITION_INDEX,
+            Conditions = new Noggog.ExtendedList<Condition>
+            {
+                new ConditionFloat()
+                {
+                    CompareOperator = CompareOperator.EqualTo,
+                    ComparisonValue = 1,
+                    Data = isDamageEffectType
+                },
+                new ConditionFloat()
+                {
+                    CompareOperator = CompareOperator.EqualTo,
+                    ComparisonValue = 0,
+                    Data = isSoakEffectType
+                }
+            }
+        };
+    }
+
+    private APerkEffect ReducedEnvironmentDamageEntryPerk(float reduction)
+    {
+        return new PerkEntryPointModifyValue
+        {
+            EntryPoint = APerkEntryPointEffect.EntryType.ModIncomingSpellMagnitude,
+            Modification = PerkEntryPointModifyValue.ModificationType.Multiply,
+            Value = (1 - reduction),
+            PerkConditionTabCount = 3,
+
+
+            // Only apply the effect on hazard health-damage
+            Conditions = new ExtendedList<PerkCondition>
+            {
+                CreateIsHazardHealthDamage(),
+            }
+        };
+    }
+
     private void PatchConditioningPerk()
     {
         // Dictionary for quick access to our resistance boost effects
@@ -75,13 +137,27 @@ public class HazardSystemMaxResistancePerkPatcher
 
         var perk  = outputMod.Perks.GetOrAddAsOverride(baseGameLinkCache.Resolve<IPerkGetter>("Skill_EnvironmentalConditioning"));
         perk.Ranks.Clear();
+
+        // Apply MagicEffect EnvironmentalConditioning_ReduceChanceAFFL to reduce affliction chance (Same as base elemental affliction)
+        var reduceChanceAffl = baseGameLinkCache.Resolve<IMagicEffectGetter>("EnvironmentalConditioning_ReduceChanceAFFL");
+        var reduceEnvHealthDmg = ReducedEnvironmentDamageEntryPerk(0.1f);
+
         perk.Ranks.AddRange(new [] {
             CreateConditioningRank("Gain 10 resistance to thermal and radiation damage.", 1, resistances["thermal"], resistances["radiation"]),
             CreateConditioningRank("Gain 10 resistance to airborne and corrosive damage.", 1, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"]),
-            CreateConditioningRank("Gain 10 maximum resistance to all environmental damage.", 1, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], maxEffectUnlock),
+            CreateConditioningRank("Your suit might have given up but your body has not. Take less health damage and reduced chance to gain afflictions.",  1, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl),
+            CreateConditioningRank("Gain 10 maximum resistance to all environmental damage.", 1, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl, maxEffectUnlock),
         });
 
         removeResistanceCapSpellEffect = maxEffectUnlock;
+    }
+
+    // Third rank is special as it doesn't just add
+    private PerkRank CreateConditioningRank(string description, int rankId, APerkEffect perk, params IMagicEffectGetter[] magicEffects)
+    {
+        var perkWithMagicEffects = CreateConditioningRank(description, rankId, magicEffects);
+        perkWithMagicEffects.Effects.Add(perk);
+        return perkWithMagicEffects;
     }
     private IMagicEffect CreateUnlockMaxResistanceEffect()
     {
@@ -117,7 +193,8 @@ public class HazardSystemMaxResistancePerkPatcher
         return mf;
     }
 
-    private PerkRank CreateConditioningRank(string description, int rankId, params IMagicEffect[] perkEffects)
+    // Creates a perk with <description> and adds the perkEffects as a single spell used by the Perk
+    private PerkRank CreateConditioningRank(string description, int rankId, params IMagicEffectGetter[] perkEffects)
     {
         var perkRank = new PerkRank()
         {
@@ -132,7 +209,7 @@ public class HazardSystemMaxResistancePerkPatcher
         return perkRank;
     }
 
-    private Spell CreatePerkRankSpell(int rankId, IMagicEffect[] perkEffects)
+    private Spell CreatePerkRankSpell(int rankId, IMagicEffectGetter[] perkEffects)
     {
         var spell = outputMod.Spells.AddNew("HaOv_EnvironmentalConditioning_Spell_Rank_" + rankId);
         spell.Name = "Environmental Conditioning Spell " + rankId;

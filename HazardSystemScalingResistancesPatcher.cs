@@ -8,7 +8,6 @@ using Noggog;
 
 public class HazardSystemScalingResistancesPatcher
 {
-    //835
     private readonly HazardSystem hazardSystem;
     private readonly StarfieldMod outputMod;
     private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
