@@ -15,7 +15,6 @@ public struct EditorId<T>
 }
 public class HazardSystem
 {
-
     private readonly Dictionary<string, EditorId<ActorValueInformation>> hazardToDamageSoakValue;
     private readonly Dictionary<string, EditorId<ConditionRecord>> hazardToDamageSoakCondition;
     private readonly Dictionary<string, EditorId<ConditionRecord>> hazardToApplyEnvDamageCondition;

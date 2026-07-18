@@ -221,6 +221,7 @@ public class HazardsSystemPatcher
             Console.WriteLine("Adding new SoakValue: " + newValue.EditorID);
             newValue.Type = ActorValueInformation.Types.Variable;
             newValue.DefaultValue = 100;
+            newValue.Flags = ActorValueInformation.Flag.MaximumOneHundred;
 
             newSoakRecords[entry] = newValue;
         }

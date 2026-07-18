@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Environments;
 using Mutagen.Bethesda.Plugins;
@@ -51,7 +52,11 @@ public class HazardsSystemSpellsPatcher
     private MagicEffect CreateExtremeEnvironmentEffect(string hazardType, IMagicEffectGetter effectBase)
     {
         var effectNew = outputMod.MagicEffects.DuplicateInAsNewRecord(effectBase, $"{effectBase.EditorID}_{hazardType}");
+        effectNew.Name = $"Warning: Suit integrity severely compromised!";
+        effectNew.Flags = effectNew.Flags & ~MagicEffect.Flag.Recover;
         effectNew.ActorValue2.SetTo(hazardSystem.GetSoakAV(hazardType));
+        effectNew.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
+        effectNew.ResistValue.SetTo(hazardSystem.GetResistanceAV(hazardType));
 
         return effectNew;
     }
@@ -181,6 +186,7 @@ public class HazardsSystemSpellsPatcher
     }
     private void PatchSpellHazard(ISpellGetter record, string hazardType)
     {
+        List<Effect> environmentalDamageEffects = new();
         Console.WriteLine("Patching spell " + record.EditorID);
         var patch = outputMod.Spells.GetOrAddAsOverride(record);
 
@@ -189,6 +195,7 @@ public class HazardsSystemSpellsPatcher
 
         foreach(var effect in patch.Effects)
         {
+            bool effectTypeEnvironmentalDamage = false;
             foreach(var condition in effect.Conditions)
             {
                 // Replace the conditions that check if we should deteriorate the suit integrity
@@ -201,8 +208,14 @@ public class HazardsSystemSpellsPatcher
                 if (resolver.IsConditionApplyEnviornmentalDamage(condition))
                 {
                     resolver.ReplaceConditionTarget(condition, hazardSystem.GetApplyEnvDamageCondition(hazardType));
+                    effectTypeEnvironmentalDamage = true;
                 }
             }
+            if(effectTypeEnvironmentalDamage)
+            {
+                environmentalDamageEffects.Add(effect);
+            }
+
             if(patch.EditorID.StartsWith("ENV_SuppressSoak_Extreme"))
             {
                 if(resolver.IsExtremeEnvironmentEffect(effect))
@@ -212,6 +225,17 @@ public class HazardsSystemSpellsPatcher
                     effect.EFIF = 0;
                     effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
                     effect.Data!.Magnitude = 4.0f;
+
+                    // The Extreme spells check whether hazards are enabled 
+                    // However, we change it to check whether it can damage soak, a condition that check the same parameters
+                    // we remove the check from the base game
+                    var globalConditionsFiltered = effect.Conditions.Where(c => c.Data is not GetGlobalValueConditionData).ToArray();
+                    effect.Conditions.Clear();
+                    effect.Conditions.AddRange(globalConditionsFiltered);
+                    
+                    // Base-game Extreme Effect does not check if soak can be damaged, as it is designed to remove all soak instantly. 
+                    // We would rather have it deals signiticant damage but makes room for counterplays.
+                    effect.Conditions.Add(GetConditionFormCondition.With(hazardSystem.GetSoakCondition(hazardType)).EqualsTo().Value(1));
                 }
             }
         }
