@@ -58,14 +58,14 @@ public class HazardsSystemPatcher
         envSoakConditions = AddSuitIntegritySoakCounter();
         envApplyEnvDamageCondition = AddSoakDepletedCondition();
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
-        PatchSoakRestoreCondition(soakDamageTakenCondition);
         // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
         PatchHazardDamage();
         var hazardSystem = MakeHazardSystem();
         var soakNotficiation = AddNewNotificationSpell();
+        var restoreSoakAbility = SetupRestoreSoakAbility();
         var requiredRecords = new RequiredSystemRecords()
         {
-            Spells = [soakNotficiation],
+            Spells = [soakNotficiation, restoreSoakAbility],
         };
         return (hazardSystem, requiredRecords);
     }
@@ -314,5 +314,55 @@ public class HazardsSystemPatcher
         }
 
         return newRecord;
+    }
+
+    private Spell SetupRestoreSoakAbility()
+    {
+        PatchSoakRestoreCondition(soakDamageTakenCondition);
+        var magicEffects = CreateSoakRestoreMagicEffects();
+        return AddNewRestoreSoakAbility(magicEffects);
+    }
+
+    // The RestoreSoakAbility is applied by the game whenever a player is in a safe area. 
+    // Modifying base-games RestoreSoak ability seems to cause issues with existing saves
+    // as the ability is added by a quest. Restarting the quest fixes it but only until
+    // loading a save. For some reason saving after resetting the quest doesn't persist?
+    // .
+    // We create our own ability which we control instead.
+    private Spell AddNewRestoreSoakAbility(IEnumerable<IMagicEffectGetter> applyEffects)
+    {
+
+        var ability = mod.Spells.AddNew("HaOS_RestoreSoakAbility");
+        var restoreSoakForm = resolver.GetSoakRestoreConditionRecord();
+
+        foreach(var newEffect in applyEffects)
+        {
+            var mf =  new MagicEffectSpellEntryBuilder()
+                .AddCondition(GetConditionFormCondition.With(restoreSoakForm).EqualsTo().Value(1))
+                .WithBaseEffect(newEffect)
+                .WithMagnitude(5)
+                .Build();
+
+            ability.Effects.Add(mf); 
+        }
+
+        return ability;
+    }
+
+    private IEnumerable<MagicEffect> CreateSoakRestoreMagicEffects()
+    {
+        List<MagicEffect> createdEffects = [];
+        var baseMagicEffect = resolver.GetRestoreSoakMagicEffectRecord();
+        foreach(var hazardType in hazardTypes)
+        {
+            var newMF = mod.MagicEffects.DuplicateInAsNewRecord(baseMagicEffect, $"ENV_RestoreSoak_Effect_{hazardType}");
+            newMF.Name = "Restore " + hazardType;
+            // We hide the effect in UI such that there isn't displayed duplicate "Protection restoring..". Both vanilla and us have a restore ability so we hide our version.
+            newMF.Flags |= MagicEffect.Flag.HideInUI;
+            newMF.ActorValue2.SetTo(envSoakRecords[hazardType]);
+            createdEffects.Add(newMF);
+        }
+
+        return createdEffects;
     }
 }

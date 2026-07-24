@@ -30,10 +30,8 @@ public class HazardsSystemSpellsPatcher
 
     private void PatchInternal(IGameEnvironment<IStarfieldMod, IStarfieldModGetter> env)
     {
-        var restoreSoakMagicEffects = CreateSoakRestoreMagicEffects();
         envExtremeMagicEffects = AddExtremeEnvironmentMagicEffects();
         var winningRecords = env.LoadOrder.PriorityOrder; 
-        PatchRestoreSoakAbility(restoreSoakMagicEffects);
 
         PatchMagicEffects(winningRecords.MagicEffect().WinningOverrides());
         PatchSpellHazards(winningRecords.Spell().WinningOverrides());
@@ -59,37 +57,6 @@ public class HazardsSystemSpellsPatcher
         effectNew.ResistValue.SetTo(hazardSystem.GetResistanceAV(hazardType));
 
         return effectNew;
-    }
-
-    private IEnumerable<MagicEffect> CreateSoakRestoreMagicEffects()
-    {
-        List<MagicEffect> createdEffects = [];
-        var baseMagicEffect = resolver.GetRestoreSoakMagicEffectRecord();
-        foreach(var hazardType in mapper.HazardTypes)
-        {
-            var newMF = outputMod.MagicEffects.DuplicateInAsNewRecord(baseMagicEffect, $"ENV_RestoreSoak_Effect_{hazardType}");
-            newMF.Name = "Restore " + hazardType;
-            newMF.ActorValue2.SetTo(hazardSystem.GetSoakAV(hazardType));
-            createdEffects.Add(newMF);
-        }
-
-        return createdEffects;
-    }
-
-    // The RestoreSoakAbility is applied by the game whenever a player is in a safe area. 
-    // We need it to apply spell effects for all the soak value types.
-    private void PatchRestoreSoakAbility(IEnumerable<IMagicEffectGetter> applyEffects)
-    {
-        var originalRestoreSoakAbility = resolver.GetRestoreSoakAbility();
-        var originalEffect = originalRestoreSoakAbility.Effects[0];
-
-        var formOverride = outputMod.Spells.GetOrAddAsOverride(originalRestoreSoakAbility);
-        foreach(var newEffect in applyEffects)
-        {
-            var effect = originalEffect.DeepCopy();
-            effect.BaseEffect = new FormLinkNullable<IMagicEffectGetter>(newEffect);
-            formOverride.Effects.Add(effect);
-        }
     }
 
     public void PatchMagicEffects(IEnumerable<IMagicEffectGetter> magicEffects)
