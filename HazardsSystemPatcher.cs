@@ -115,7 +115,7 @@ public class HazardsSystemPatcher
     private IMagicEffect AddNotificationMagicEffect(string hazardType)
     {
         string editorId = $"HaOS_ThresholdNotification_{hazardType}";
-        var soakAV = envSoakRecords["hazardType"];
+        var soakAV = envSoakRecords[hazardType];
         var warningEffect = mod.MagicEffects.AddNew(editorId);
 
         warningEffect.Description = $"{hazardType} protection at <mag>%";
