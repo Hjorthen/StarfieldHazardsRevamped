@@ -9,7 +9,6 @@ using Mutagen.Bethesda.Starfield;
 public class HazardsSystemSpellsPatcher
 {
     private readonly HazardsMapper mapper;
-    Dictionary<string, MagicEffect> envExtremeMagicEffects;
     private readonly StarfieldMod outputMod; 
     private readonly BaseGameTypeResolver resolver;
     private readonly HazardSystem hazardSystem;
@@ -30,33 +29,11 @@ public class HazardsSystemSpellsPatcher
 
     private void PatchInternal(IGameEnvironment<IStarfieldMod, IStarfieldModGetter> env)
     {
-        envExtremeMagicEffects = AddExtremeEnvironmentMagicEffects();
         var winningRecords = env.LoadOrder.PriorityOrder; 
 
         PatchMagicEffects(winningRecords.MagicEffect().WinningOverrides());
         PatchSpellHazards(winningRecords.Spell().WinningOverrides());
 
-    }
-    private Dictionary<string, MagicEffect> AddExtremeEnvironmentMagicEffects()
-    {
-        var effectBase = resolver.GetExtremeEnvironmentEffect();
-        var newExtremeMagicEffects = new Dictionary<string, MagicEffect>();
-        foreach (var entry in mapper.HazardTypes)
-        {
-            newExtremeMagicEffects[entry] = CreateExtremeEnvironmentEffect(entry, effectBase);
-        }
-        return newExtremeMagicEffects;
-    }
-    private MagicEffect CreateExtremeEnvironmentEffect(string hazardType, IMagicEffectGetter effectBase)
-    {
-        var effectNew = outputMod.MagicEffects.DuplicateInAsNewRecord(effectBase, $"{effectBase.EditorID}_{hazardType}");
-        effectNew.Name = $"Warning: Suit integrity severely compromised!";
-        effectNew.Flags = effectNew.Flags & ~MagicEffect.Flag.Recover;
-        effectNew.ActorValue2.SetTo(hazardSystem.GetSoakAV(hazardType));
-        effectNew.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
-        effectNew.ResistValue.SetTo(hazardSystem.GetResistanceAV(hazardType));
-
-        return effectNew;
     }
 
     public void PatchMagicEffects(IEnumerable<IMagicEffectGetter> magicEffects)
