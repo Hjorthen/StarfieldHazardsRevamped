@@ -61,7 +61,6 @@ public class HazardsSystemPatcher
         PatchSoakRestoreCondition(soakDamageTakenCondition);
         // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
         PatchHazardDamage();
-        var damageSoakSync = PatchDamageSoakSync();
         var hazardSystem = MakeHazardSystem();
         var soakNotficiation = AddNewNotificationSpell();
         var requiredRecords = new RequiredSystemRecords()
@@ -71,15 +70,6 @@ public class HazardsSystemPatcher
         return (hazardSystem, requiredRecords);
     }
 
-    // Patches Env_Damage_Soak which the base game watches for making the environmental damage icons blink.
-    // The value goes from 100->0 making the icons blink more frequently, the lower the number.
-    private ISpellGetter PatchDamageSoakSync()
-    {
-        var thresholdConditions = CreateThresholdConditions();
-        var damageSoakEffect = AddSoakSyncDamageEffect();
-        var restoreSoakEffect = AddSoakSyncRestoreEffect();
-        return AddDamageSoakSyncAbility(thresholdConditions, damageSoakEffect, restoreSoakEffect);
-    }
 
     private Spell AddNewNotificationSpell()
     {
@@ -166,60 +156,6 @@ public class HazardsSystemPatcher
 
         magicEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
         return magicEffect;
-    }
-
-    // Create an ability that damages Env_DamageSoak whenever the new Soak values drop below threshold
-    // Each threshold are added as a condition, with the effect being applied with the magnitude of 
-    // the threshold.
-    private Spell AddDamageSoakSyncAbility(List<(int threshold, ConditionRecord other)> thresholds, IMagicEffectGetter damageEffect, IMagicEffectGetter restoreEffect)
-    {
-        var spell = mod.Spells.AddNew("HaOS_DamageSoak_Sync_Ability");
-        spell.Name = "HaOS DamageSoak Ability";
-
-        for (int i = 0; i < thresholds.Count; i++)
-        {
-            var (threshold, conditionRecord) = thresholds[i];
-            // Previous threshold value, used to calculate the diff between current and past threshold
-            int previousThreshold = (i-1)>=0 ? thresholds[i-1].threshold : 100;
-            int thresholdDifference = previousThreshold - threshold;
-            // We would like to quickly catch up with the sync float
-            // Magnitude depends on the difference between the two thresholds
-            // Thresholds far apart has greater magnitude than those close
-            float magnitude = thresholdDifference / 5.0f;
-            // We don't need to be exact so we keep a "slack" to prevent the damage from overshooting the target and then restore undershoot continously.
-            float previousThresholdWithSlack = previousThreshold - magnitude;
-
-            // If Env_Damage_Soak is currently greater than any of the soak counters,
-            // we damage the value until that is no longer the case
-            var thresholdDamageEffect = new MagicEffectSpellEntryBuilder()
-                .WithBaseEffect(damageEffect)
-                .AddCondition(GetConditionFormCondition.With(conditionRecord).EqualsTo().Value(1))
-                .AddCondition(GetValueCondition.With(resolver.ENV_Damage_Soak_AV).GreaterThan().Value(threshold))
-                .WithMagnitude(magnitude)
-                .Build();
-
-            // If Env_Damage_Soak is currently lower than all the soak counters,
-            // we restore the value until that is no longer the case.
-            // Jumps can happen in case the player uses a restore item.
-            // 
-            // We restore back up to the previous value in case the conditions 
-            // for the _current_ threshold is no longer valid.
-            var thresholdRestoreEffect = new MagicEffectSpellEntryBuilder()
-                .WithBaseEffect(restoreEffect)
-                .AddCondition(GetConditionFormCondition.With(conditionRecord).EqualsTo().Value(0))
-                .AddCondition(GetValueCondition.With(resolver.ENV_Damage_Soak_AV).LessThan().Value(previousThresholdWithSlack))
-                .WithMagnitude(magnitude)
-                .Build();
-
-            spell.Effects.Add(thresholdDamageEffect);
-            spell.Effects.Add(thresholdRestoreEffect);
-        }
-
-        spell.CastType = CastType.ConstantEffect;
-        spell.Type = Spell.SpellType.Ability;
-        spell.Flags = Spell.Flag.IgnoreResistance;
-
-        return spell;
     }
 
     // Creates a ConditionRecord that evaluates whether any of the Soak values has 
