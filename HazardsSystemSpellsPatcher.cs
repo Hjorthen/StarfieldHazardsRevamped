@@ -192,7 +192,7 @@ public class HazardsSystemSpellsPatcher
 
         // Keyword is needed by the scaling resistance damage perk. 
         patch.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
-
+        List<Effect> extremeSoakSuppressEffects = new();
         foreach(var effect in patch.Effects)
         {
             bool effectTypeEnvironmentalDamage = false;
@@ -220,30 +220,17 @@ public class HazardsSystemSpellsPatcher
             {
                 if(resolver.IsExtremeEnvironmentEffect(effect))
                 {
-                    patch.Type = Spell.SpellType.Disease;
-                    // Unset the "Value as Ratio"
-                    effect.EFIF = 0;
-                    effect.BaseEffect.SetTo(GetExtremeEnvironmentEffectForHazardType(hazardType));
-                    effect.Data!.Magnitude = 4.0f;
+                    // ENV_SuppressSoak purpose is to completely remove all soak, ignoring resistances completely. That's no fun so we remove it.
+                    extremeSoakSuppressEffects.Add(effect);
 
-                    // The Extreme spells check whether hazards are enabled 
-                    // However, we change it to check whether it can damage soak, a condition that check the same parameters
-                    // we remove the check from the base game
-                    var globalConditionsFiltered = effect.Conditions.Where(c => c.Data is not GetGlobalValueConditionData).ToArray();
-                    effect.Conditions.Clear();
-                    effect.Conditions.AddRange(globalConditionsFiltered);
-                    
-                    // Base-game Extreme Effect does not check if soak can be damaged, as it is designed to remove all soak instantly. 
-                    // We would rather have it deals signiticant damage but makes room for counterplays.
-                    effect.Conditions.Add(GetConditionFormCondition.With(hazardSystem.GetSoakCondition(hazardType)).EqualsTo().Value(1));
                 }
             }
         }
-    }
-
-    private FormKey GetExtremeEnvironmentEffectForHazardType(string hazardType)
-    {
-        return envExtremeMagicEffects[hazardType].FormKey;
+        // Remove all suppress soak effects
+        foreach (var effect in extremeSoakSuppressEffects)
+        {
+            patch.Effects.Remove(effect);   
+        }
     }
 
     private void PatchTargetingEnvSoak(IMagicEffectGetter record)

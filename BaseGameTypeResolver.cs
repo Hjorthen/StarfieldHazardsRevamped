@@ -112,6 +112,10 @@ public class BaseGameTypeResolver
     {
         return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SPELL_ApplyEnvironmentalDamage");
     }
+    public IMagicEffectGetter GetWeatherWarningEffect()
+    {
+        return linkCache.Resolve<IMagicEffectGetter>("ENV_WeatherWarning");
+    }
     public IEnumerable<IGlobalGetter> GetElementalDamageMagnitudeValues()
     {
         string[] globalsToPatch = ["PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_1", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_2", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_3", "PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_4"];

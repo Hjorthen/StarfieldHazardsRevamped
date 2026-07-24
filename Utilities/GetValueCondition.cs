@@ -14,6 +14,12 @@ public abstract class ConditionBuilder<T> where T : ConditionBuilder<T>
         compareOperator = CompareOperator.GreaterThan;
         return (T)this;
     }
+
+    public T LessThanOrEqual()
+    {
+        compareOperator = CompareOperator.LessThanOrEqualTo;
+        return (T)this;
+    }
     public T LessThan()
     {
         compareOperator = CompareOperator.LessThan;

@@ -5,6 +5,8 @@ using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
+using Noggog;
+using Records.Fluent;
 
 public class HazardsMapper
 {
@@ -61,9 +63,10 @@ public class HazardsSystemPatcher
         PatchHazardDamage();
         var damageSoakSync = PatchDamageSoakSync();
         var hazardSystem = MakeHazardSystem();
+        var soakNotficiation = AddNewNotificationSpell();
         var requiredRecords = new RequiredSystemRecords()
         {
-            Spells = [damageSoakSync]
+            Spells = [soakNotficiation],
         };
         return (hazardSystem, requiredRecords);
     }
@@ -76,6 +79,62 @@ public class HazardsSystemPatcher
         var damageSoakEffect = AddSoakSyncDamageEffect();
         var restoreSoakEffect = AddSoakSyncRestoreEffect();
         return AddDamageSoakSyncAbility(thresholdConditions, damageSoakEffect, restoreSoakEffect);
+    }
+
+    private Spell AddNewNotificationSpell()
+    {
+        var notifySpell = mod.Spells.AddNew("HaOS_SoakDamage_Notifier");
+        notifySpell.Name = "HaOS Soak Notifier";
+        notifySpell.Type = Spell.SpellType.Disease;
+        
+        foreach (var type in hazardTypes)
+        {
+            var spellEffects = MakeNotificationEffectsForType([100, 90, 70, 35, 25, 15, 10, 5, 0], type);
+            notifySpell.Effects.AddRange(spellEffects);
+        }
+
+
+        return notifySpell;
+    }
+
+    // Helper function to create the conditions to invoke the magic effect at given intervals
+    private static IEnumerable<Effect> MakeNotificationEffectsForType(float[] thresholds, IActorValueInformationGetter soakAv, IMagicEffectGetter warningEffect)
+    {
+        var conditionPairs = thresholds
+        .Zip(thresholds.Skip(1).Append(0),
+            (upper, lower) => new Condition[] {
+                GetValueCondition.With(soakAv).LessThanOrEqual().Value(upper),
+                GetValueCondition.With(soakAv).GreaterThan().Value(lower)
+            }
+        ).ToList(); // Zip with itself but have the "other" pair be the next value or 0
+
+        for (int i = 0; i < thresholds.Length; i++)
+        {
+            float belowMagnitude = thresholds[i];
+            yield return new MagicEffectSpellEntryBuilder().WithBaseEffect(warningEffect).WithMagnitude(belowMagnitude).AddConditions(conditionPairs[i]).Build();
+        }
+    }
+
+    private IEnumerable<Effect> MakeNotificationEffectsForType(float[] thresholds, string hazardType)
+    {
+        var effect = AddNotificationMagicEffect(hazardType);
+        var soakAV = envSoakRecords[hazardType];
+        return MakeNotificationEffectsForType(thresholds, soakAV, effect);
+    }
+
+    private IMagicEffect AddNotificationMagicEffect(string hazardType)
+    {
+        string editorId = $"HaOS_ThresholdNotification_{hazardType}";
+        var soakAV = envSoakRecords["hazardType"];
+        var warningEffect = mod.MagicEffects.AddNew(editorId);
+
+        warningEffect.Description = $"{hazardType} protection at <mag>%";
+        warningEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+
+        ScriptAttachment.OfScript("Haos_SoakNotificationScript")
+            .SetProperty("HazardTypeName", hazardType)
+            .ApplyTo(warningEffect);
+        return warningEffect;
     }
 
     private MagicEffect AddSoakSyncRestoreEffect()

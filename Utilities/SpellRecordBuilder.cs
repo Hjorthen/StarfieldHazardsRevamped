@@ -15,6 +15,11 @@ public class MagicEffectSpellEntryBuilder
     private float? effectMagnitude;
     private IMagicEffectGetter? baseEffect;
 
+    public MagicEffectSpellEntryBuilder AddConditions(IEnumerable<Condition> conditions)
+    {
+        effectConditions.AddRange(conditions);
+        return this;
+    }
     public MagicEffectSpellEntryBuilder AddCondition(Condition condition)
     {
         effectConditions.Add(condition);

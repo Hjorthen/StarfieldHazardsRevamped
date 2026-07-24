@@ -110,7 +110,7 @@ public class HazardSystemScalingResistancesPatcher
     }
     public IKeywordGetter GetKeywordThermal()
     {
-        return baseGameLinkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Radiation");
+        return baseGameLinkCache.Resolve<IKeywordGetter>("ENV_EnvDamageType_Thermal");
     }
     private PerkCondition CreateIsHazardEffectOfType(string hazardType)
     {
@@ -140,7 +140,7 @@ public class HazardSystemScalingResistancesPatcher
     {
         byte _TAB_INDEX = 0;
         var conditionData = new GetValueConditionData();
-        conditionData.FirstParameter.SetTo(baseGameLinkCache.Resolve<IActorValueInformationGetter>("Env_Resist_Radiation"));
+        conditionData.FirstParameter.SetTo(hazardSystem.GetResistanceAV(hazardType));
 
         return new PerkCondition()
         {
