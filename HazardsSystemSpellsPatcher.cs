@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Environments;
-using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
 
 public class HazardsSystemSpellsPatcher
@@ -31,23 +29,81 @@ public class HazardsSystemSpellsPatcher
     {
         var winningRecords = env.LoadOrder.PriorityOrder; 
 
+
         PatchMagicEffects(winningRecords.MagicEffect().WinningOverrides());
         PatchSpellHazards(winningRecords.Spell().WinningOverrides());
 
     }
 
+    private IActorValueInformationGetter AddNewEnvironmentalDamageResistanceValue()
+    {
+        var av = outputMod.ActorValueInformation.AddNew("HaOS_Env_EnvDmg_Resist");
+        av.Flags = ActorValueInformation.Flag.Percentage;
+        av.DefaultValue = 0.0f;
+        av.Type = ActorValueInformation.Types.Resistance;
+        av.Min = 0.0f;
+        av.Max = 25;
+
+        return av;
+    }
+
+
+
     public void PatchMagicEffects(IEnumerable<IMagicEffectGetter> magicEffects)
     {
+        var envDmgResist = AddNewEnvironmentalDamageResistanceValue();
+
         foreach(var record in magicEffects)
         {
-            if(record.EditorID.StartsWith("ENV_"))
+            if(IsEnvDmgSoakEffect(record))
             {
-                if(resolver.IsEnvironmentalDamage(record) && !record.EditorID.Contains("TEMP") && !record.EditorID.Contains("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect") && !(record.EditorID == "ENV_ResoreSoak_Effect"))
-                {
-                    PatchTargetingEnvSoak(record);
-                }
+                PatchTargetingEnvSoak(record);
+            }
+            else if (IsEnvDmgHealthEffect(record))
+            {
+                PatchEffectResistance(record, envDmgResist);
             }
         }
+    }
+
+    private void PatchEffectResistance(IMagicEffectGetter record, IActorValueInformationGetter envDmgResist)
+    {
+        Console.WriteLine("Patching environmental damage effect: " + record.EditorID);
+        var patch = outputMod.MagicEffects.GetOrAddAsOverride(record);
+        patch.ResistValue = envDmgResist.ToLink();
+    }
+
+    private bool IsEnvDmgSoakEffect(IMagicEffectGetter record)
+    {
+        // Seems Bethesda has been good at naming all environmental effects with ENV_ prefix
+        if(record.EditorID.StartsWith("ENV_"))
+        {
+            if (record.EditorID.Contains("TEMP") || record.EditorID.Contains("ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect") || record.EditorID == "ENV_ResoreSoak_Effect")
+                return false;
+
+
+            if(resolver.IsSoakDamage(record))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsEnvDmgHealthEffect(IMagicEffectGetter record)
+    {
+        if(record.EditorID.StartsWith("ENV_"))
+        {
+            if (record.EditorID.Contains("OBSOLETE"))
+                return false;
+
+            if(resolver.IsEnvDamage(record))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void PatchSpellHazards(IEnumerable<ISpellGetter> spells)
@@ -186,6 +242,8 @@ public class HazardsSystemSpellsPatcher
         patch.ActorValue2.SetTo(GetEnvSoakTypedFor(patch));
     }
 
+    // Some magic effects are using the wrong resistance values
+    // we patch them here.
     private void PatchBrokenMagicEffect(MagicEffect effect)
     {
         if(effect.EditorID == "ENV_DMG_Thermal_Water_Heat_Soak_Effect" || effect.EditorID == "ENV_DMG_Thermal_Weather_Soak_Effect")
@@ -198,22 +256,5 @@ public class HazardsSystemSpellsPatcher
     {
         var type = resolver.GetEnvEffectDamageType(record);
         return hazardSystem.GetSoakAV(type);
-    }
-    public void DebugPrint()
-    {
-        Console.WriteLine("Patched hazards:");
-        var linkCache = outputMod.ToImmutableLinkCache();
-        foreach(var spell in outputMod.Spells)
-        {
-            Console.WriteLine(spell.EditorID);
-            foreach(var spellEffectRef in spell.Effects)
-            {
-                if(linkCache.TryResolve<IMagicEffectGetter>(spellEffectRef.BaseEffect.FormKey, out var spellEffect)) {
-                    var spellEffectTarget = linkCache.Resolve<IActorValueInformationGetter>(spellEffect.ActorValue2.FormKey);
-
-                    Console.WriteLine("\t" + spellEffect.EditorID + " -> " + spellEffectTarget.EditorID);
-                }
-            }
-        }
     }
 }

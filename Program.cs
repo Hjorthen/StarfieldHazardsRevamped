@@ -23,7 +23,6 @@ var mapper = new HazardsMapper(
     hazardTypes: ["Thermal", "Airborne", "Corrosive", "Radiation"]
 );
 
-// Something is wrong with Extreme Hazards.. We never set the proper targets, likely because we're patching the Extreme Hazard spell effect..
 var (hazardSystem, hazardSystemForms) = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
 
 // Allow the hazardSystem to lookup things in the updated cachhe

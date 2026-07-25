@@ -12,8 +12,11 @@ public class EnvDamageSettings
     public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_2 { get; init; } = 1.83330f;
     public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_3 { get; init; } = 1.333300f;
     public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_4 { get; init; } = 1.1f;
+    // Used for environmental hazards like gas vents. Spell type: Spell and is applied with a frequency defined on the Hazard records (3 times /s)
     public float? ENV_Hazard_Mag_Dmg_Standard { get; init; } = 2.5f;
     public float? ENV_Hazard_Mag_Soak_Standard { get; init; } = 25;
+
+    // AppliedSpell dont seem to be used?
     public float? ENV_AppliedSpell_Dur_Momentary_Soak { get; init; } = 0;
     public float? ENV_AppliedSpell_Mag_Momentary_Soak_RATIO { get; init; } = 2.0f;
     public float? ENV_AppliedSpell_Dur_Momentary { get; init; } = 1.0f;

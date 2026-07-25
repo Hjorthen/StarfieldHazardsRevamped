@@ -127,17 +127,16 @@ public class HazardSystemMaxResistancePerkPatcher
         var reduceChanceAffl = baseGameLinkCache.Resolve<IMagicEffectGetter>("EnvironmentalConditioning_ReduceChanceAFFL");
         var reduceEnvHealthDmg = ReducedEnvironmentDamageEntryPerk(0.1f);
 
-        perk.Ranks.AddRange(new [] {
+        perk.Ranks.AddRange([
             CreateConditioningRank("Gain 10 resistance to thermal and radiation damage.", 1, resistances["thermal"], resistances["radiation"]),
             CreateConditioningRank("Gain 10 resistance to airborne and corrosive damage.", 2, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"]),
             CreateConditioningRank("Your suit might have given up but your body has not. Take less health damage and reduced chance to gain afflictions.",  3, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl),
             CreateConditioningRank("Gain 10 maximum resistance to all environmental damage.", 4, reduceEnvHealthDmg, resistances["thermal"], resistances["radiation"], resistances["airborne"], resistances["corrosive"], reduceChanceAffl, maxEffectUnlock),
-        });
+        ]);
 
         removeResistanceCapSpellEffect = maxEffectUnlock;
     }
 
-    // Third rank is special as it doesn't just add
     private PerkRank CreateConditioningRank(string description, int rankId, APerkEffect perk, params IMagicEffectGetter[] magicEffects)
     {
         var perkWithMagicEffects = CreateConditioningRank(description, rankId, magicEffects);

@@ -22,6 +22,14 @@ public class BaseGameTypeResolver
             return GetApplyEnvironmentDamageConditionRecord().FormKey;
         }
     }
+
+    public FormLink<IActorValueInformationGetter> ENV_DmgSoak
+    {
+        get
+        {
+            return linkCache.ResolveIdentifier<IActorValueInformationGetter>("EnvDmg");
+        }
+    }
     public FormLink<IActorValueInformationGetter> ENV_Damage_Soak_AV
     {
         get
@@ -223,12 +231,17 @@ public class BaseGameTypeResolver
         }
     }
 
-    public bool IsEnvironmentalDamage(IMagicEffectGetter magicEffect)
+    public bool IsEnvDamage(IMagicEffectGetter record)
     {
-        // Target is stored as ActorValue2
+        var targetedActorValue = record.ActorValue2;
+        return targetedActorValue.FormKey == ENV_DmgSoak.FormKey;
+    }
+
+    public bool IsSoakDamage(IMagicEffectGetter magicEffect)
+    {
+        // Damage target type is stored as ActorValue2
         var actorValue2 = magicEffect.ActorValue2;
-        var baseSoakAV = ENV_Damage_Soak_AV;
-        return actorValue2.FormKey == baseSoakAV.FormKey;
+        return actorValue2.FormKey == ENV_Damage_Soak_AV.FormKey;
     }
 
     public string? GetEnvEffectDamageType(IFormKeyGetter link)
@@ -295,4 +308,5 @@ public class BaseGameTypeResolver
         var extremeEnvironmentMagicEffect = GetExtremeEnvironmentEffect();
         return effect.BaseEffect.FormKey == extremeEnvironmentMagicEffect.FormKey;
     }
+
 }

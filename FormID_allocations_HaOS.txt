@@ -202,3 +202,17 @@ ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_Corrosive
 2118
 ENV_DMG_DepleteSoak_ExtremeEnvironment_Effect_Radiation
 2119
+HaOS_SoakDamage_Notifier
+2150
+HaOS_ThresholdNotification_Radiation
+2151
+HaOS_ThresholdNotification_Thermal
+2152
+HaOS_ThresholdNotification_Airborne
+2153
+HaOS_ThresholdNotification_Corrosive
+2154
+HaOS_RestoreSoakAbility
+2155
+HaOS_Env_EnvDmg_Resist
+2156
