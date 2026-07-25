@@ -24,6 +24,7 @@ var mapper = new HazardsMapper(
 );
 
 var (hazardSystem, hazardSystemForms) = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
+EnvDamageSettings.Apply(hazardMod, linkCache);
 
 // Allow the hazardSystem to lookup things in the updated cachhe
 hazardSystem.SetLinkCache(linkCache);

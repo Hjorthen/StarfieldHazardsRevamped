@@ -216,3 +216,7 @@ HaOS_RestoreSoakAbility
 2155
 HaOS_Env_EnvDmg_Resist
 2156
+HaOS_Reduced_EnvDmg_Ability
+2157
+HaOS_Reduced_EnvDmg_MagicEffect
+2158

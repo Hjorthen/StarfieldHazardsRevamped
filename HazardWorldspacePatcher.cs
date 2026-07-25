@@ -78,7 +78,7 @@ public class HazardWorldspacePatcher
         hazard.Radius = 22;
         hazard.Flags |= Hazard.Flag.TaperEffectivenessByProximity;
         hazard.TaperFullEffectRadius = 5;
-        hazard.TaperCurse = 4;
+        hazard.TaperCurse = 0.5f;
         hazard.TaperWeight = 1;
     }
 }

@@ -2,19 +2,20 @@ using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Starfield;
 
+// In the base game, damaging magic effects are affected by resistances
 public class EnvDamageSettings
 {
-    public float? ENV_Weather_Mag_NumConcurrentEffects_1 { get; init; } = 0;
-    public float? ENV_Weather_Mag_NumConcurrentEffects_2 { get; init; } = 0;
-    public float? ENV_Weather_Mag_NumConcurrentEffects_3 { get; init; } = 0;
-    public float? ENV_Weather_Mag_NumConcurrentEffects_4 { get; init; } = 0;
-    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_1 { get; init; } = 3.33330f;
-    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_2 { get; init; } = 1.83330f;
-    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_3 { get; init; } = 1.333300f;
-    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_4 { get; init; } = 1.1f;
+    public float? ENV_Weather_Mag_NumConcurrentEffects_1 { get; init; } = 0.75f;
+    public float? ENV_Weather_Mag_NumConcurrentEffects_2 { get; init; } = 0.4875f;
+    public float? ENV_Weather_Mag_NumConcurrentEffects_3 { get; init; } = 0.3625f;
+    public float? ENV_Weather_Mag_NumConcurrentEffects_4 { get; init; } = 0.3f;
+    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_1 { get; init; } = 1f;
+    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_2 { get; init; } = 0.65f;
+    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_3 { get; init; } = 0.48333f;
+    public float? ENV_Weather_Mag_Soak_NumConcurrentEffects_4 { get; init; } = 0.4f;
     // Used for environmental hazards like gas vents. Spell type: Spell and is applied with a frequency defined on the Hazard records (3 times /s)
-    public float? ENV_Hazard_Mag_Dmg_Standard { get; init; } = 2.5f;
-    public float? ENV_Hazard_Mag_Soak_Standard { get; init; } = 25;
+    public float? ENV_Hazard_Mag_Dmg_Standard { get; init; } = 4f;
+    public float? ENV_Hazard_Mag_Soak_Standard { get; init; } = 1.5f;
 
     // AppliedSpell dont seem to be used?
     public float? ENV_AppliedSpell_Dur_Momentary_Soak { get; init; } = 0;
