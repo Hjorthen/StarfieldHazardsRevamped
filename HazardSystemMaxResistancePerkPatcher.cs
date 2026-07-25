@@ -75,7 +75,7 @@ public class HazardSystemMaxResistancePerkPatcher
         isSoakEffectType.FirstParameter.Link.SetTo(GetKeywordEnvironmentalDamageSoak());
 
 
-        return  new PerkCondition()
+        return new PerkCondition()
         {
             RunOnTabIndex = CONDITION_INDEX,
             Conditions = new Noggog.ExtendedList<Condition>
@@ -96,36 +96,57 @@ public class HazardSystemMaxResistancePerkPatcher
         };
     }
 
-    private APerkEffect ReducedEnvironmentDamageEntryPerk(float reduction)
+    private Spell AddNewReducedEnvDmgAbility(float reduction)
     {
-        return new PerkEntryPointModifyValue
-        {
-            EntryPoint = APerkEntryPointEffect.EntryType.ModIncomingSpellMagnitude,
-            Modification = PerkEntryPointModifyValue.ModificationType.Multiply,
-            Value = (1 - reduction),
-            PerkConditionTabCount = 3,
+        // Reduction is expected to a percentage between 0..1
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(1f, reduction, nameof(reduction));
 
 
-            // Only apply the effect on hazard health-damage
-            Conditions = new ExtendedList<PerkCondition>
-            {
-                CreateIsHazardHealthDamage(),
-            }
-        };
+        var newSpell = outputMod.Spells.AddNew("HaOS_Reduced_EnvDmg_Ability");
+        newSpell.Name = "Environmental Conditioning";
+        newSpell.CastType = CastType.ConstantEffect;
+        newSpell.Type = Spell.SpellType.Ability;
+
+        var effect = AddNewReducedEnvDmgMF();
+
+        newSpell.Effects.Add(new MagicEffectSpellEntryBuilder()
+            .WithBaseEffect(effect)
+            .WithMagnitude(reduction * 100f).Build()
+        );
+        return newSpell;
+    }
+
+    private IMagicEffectGetter AddNewReducedEnvDmgMF()
+    {
+        var EnvDmgResistance = baseGameLinkCache.Resolve<IActorValueInformationGetter>("HaOS_Env_EnvDmg_Resist");
+
+        var newEffect = outputMod.MagicEffects.AddNew("HaOS_Reduced_EnvDmg_MagicEffect");
+        newEffect.Archetype = new MagicEffectArchetype(MagicEffectArchetype.TypeEnum.ValueModifier);
+        newEffect.ActorValue2 = EnvDmgResistance.ToLink();
+
+        newEffect.CastType = CastType.ConstantEffect;
+        newEffect.Description = "You take <mag>% less damage to your health from environmental sources";
+        newEffect.Flags = MagicEffect.Flag.NoArea | MagicEffect.Flag.NoHitEvent | MagicEffect.Flag.Recover;
+        newEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+
+        return newEffect;
     }
 
     private void PatchConditioningPerk()
     {
+        const float EnvDmg_Reduction = 0.25f;
+
+
         // Dictionary for quick access to our resistance boost effects
         var resistances = hazardSystem.HazardTypes.ToDictionary(k => k.ToLower(), CreateResistanceBoostEffect);
         var maxEffectUnlock = CreateUnlockMaxResistanceEffect();
 
-        var perk  = outputMod.Perks.GetOrAddAsOverride(baseGameLinkCache.Resolve<IPerkGetter>("Skill_EnvironmentalConditioning"));
+        var perk = outputMod.Perks.GetOrAddAsOverride(baseGameLinkCache.Resolve<IPerkGetter>("Skill_EnvironmentalConditioning"));
         perk.Ranks.Clear();
 
         // Apply MagicEffect EnvironmentalConditioning_ReduceChanceAFFL to reduce affliction chance (Same as base elemental affliction)
         var reduceChanceAffl = baseGameLinkCache.Resolve<IMagicEffectGetter>("EnvironmentalConditioning_ReduceChanceAFFL");
-        var reduceEnvHealthDmg = ReducedEnvironmentDamageEntryPerk(0.1f);
+        var reduceEnvHealthDmg = AddNewReducedEnvDmgAbility(EnvDmg_Reduction);
 
         perk.Ranks.AddRange([
             CreateConditioningRank("Gain 10 resistance to thermal and radiation damage.", 1, resistances["thermal"], resistances["radiation"]),
@@ -137,10 +158,14 @@ public class HazardSystemMaxResistancePerkPatcher
         removeResistanceCapSpellEffect = maxEffectUnlock;
     }
 
-    private PerkRank CreateConditioningRank(string description, int rankId, APerkEffect perk, params IMagicEffectGetter[] magicEffects)
+    private PerkRank CreateConditioningRank(string description, int rankId, ISpellGetter perk, params IMagicEffectGetter[] magicEffects)
     {
         var perkWithMagicEffects = CreateConditioningRank(description, rankId, magicEffects);
-        perkWithMagicEffects.Effects.Add(perk);
+        perkWithMagicEffects.Effects.Add(new PerkAbilityEffect()
+        {
+            Ability = new FormLink<ISpellGetter>(perk)
+        });
+
         return perkWithMagicEffects;
     }
     private IMagicEffect CreateUnlockMaxResistanceEffect()
@@ -183,7 +208,7 @@ public class HazardSystemMaxResistancePerkPatcher
         var perkRank = new PerkRank()
         {
             Description = description,
-        }; 
+        };
 
         perkRank.Effects.Add(new PerkAbilityEffect()
         {
@@ -198,8 +223,8 @@ public class HazardSystemMaxResistancePerkPatcher
         var spell = outputMod.Spells.AddNew("HaOS_EnvironmentalConditioning_Spell_Rank_" + rankId);
         spell.Name = "Environmental Conditioning Spell " + rankId;
         spell.Type = Spell.SpellType.Ability;
-        
-        foreach(var mf in perkEffects)
+
+        foreach (var mf in perkEffects)
         {
             spell.Effects.Add(new MagicEffectSpellEntryBuilder()
                 .WithBaseEffect(mf)
@@ -320,7 +345,7 @@ public class HazardSystemMaxResistancePerkPatcher
             .Build();
     }
 
-    private Effect CreateEffectFor( int resistanceValue, int tierValue, IActorValueInformationGetter resistanceAV, IActorValueInformationGetter tierAV, IMagicEffectGetter mf)
+    private Effect CreateEffectFor(int resistanceValue, int tierValue, IActorValueInformationGetter resistanceAV, IActorValueInformationGetter tierAV, IMagicEffectGetter mf)
     {
         return new MagicEffectSpellEntryBuilder()
             .WithBaseEffect(mf)
