@@ -99,7 +99,7 @@ public class HazardSystemMaxResistancePerkPatcher
     private Spell AddNewReducedEnvDmgAbility(float reduction)
     {
         // Reduction is expected to a percentage between 0..1
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(1f, reduction, nameof(reduction));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(reduction, 1f, nameof(reduction));
 
 
         var newSpell = outputMod.Spells.AddNew("HaOS_Reduced_EnvDmg_Ability");
@@ -158,7 +158,7 @@ public class HazardSystemMaxResistancePerkPatcher
         removeResistanceCapSpellEffect = maxEffectUnlock;
     }
 
-    private PerkRank CreateConditioningRank(string description, int rankId, ISpellGetter perk, params IMagicEffectGetter[] magicEffects)
+    private PerkRank CreateConditioningRank(string description, byte rankId, ISpellGetter perk, params IMagicEffectGetter[] magicEffects)
     {
         var perkWithMagicEffects = CreateConditioningRank(description, rankId, magicEffects);
         perkWithMagicEffects.Effects.Add(new PerkAbilityEffect()
@@ -203,7 +203,7 @@ public class HazardSystemMaxResistancePerkPatcher
     }
 
     // Creates a perk with <description> and adds the perkEffects as a single spell used by the Perk
-    private PerkRank CreateConditioningRank(string description, int rankId, params IMagicEffectGetter[] perkEffects)
+    private PerkRank CreateConditioningRank(string description, byte rankId, params IMagicEffectGetter[] perkEffects)
     {
         var perkRank = new PerkRank()
         {
@@ -212,6 +212,7 @@ public class HazardSystemMaxResistancePerkPatcher
 
         perkRank.Effects.Add(new PerkAbilityEffect()
         {
+            Rank = rankId,
             Ability = new FormLink<ISpellGetter>(CreatePerkRankSpell(rankId, perkEffects))
         });
 
