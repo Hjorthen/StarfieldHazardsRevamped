@@ -33,6 +33,7 @@ public class HazardSystemItemsPatcher
         var majorAidItem = new RestoreItemEffectData(Mass: 1.8f, Value: 850, Magnitude: 100);
         var minorAidItem = new RestoreItemEffectData(Mass: 0.8f, Value: 340, Magnitude: 35);
 
+
         var radiationRestoreMf = AddSoakRestoreMagicEffect("Radiation", "HS_Restore_Radiation_Soak", "", "Restore <mag> of radiation suit integrity");
         AddItem(new RestoreItemAppearenceData(
             Name: "Radiation Mesh Shield",
@@ -43,7 +44,7 @@ public class HazardSystemItemsPatcher
             editorId: "HaOS_Item_Restore_Major_Radiation"
         );
         AddItem(new RestoreItemAppearenceData(
-            Name: "Radiation Spray",
+            Name: "Rad-X Aerosol",
             Description: "Apply a thin layer of lead to temporarily block out radiation. Warning: Inhaling might cause discomfort, hallucination and seizure. Not for tanning.",
             Assets: new Injector()),
             itemData: minorAidItem,
@@ -54,7 +55,7 @@ public class HazardSystemItemsPatcher
         var thermalRestoreMf = AddSoakRestoreMagicEffect("Thermal", "HS_Restore_Thermal_Soak", "", "Restore <mag> of thermal suit integrity");
         AddItem(new RestoreItemAppearenceData(
             Name: "Cryo Battery Pack",
-            Description: "A combined coolant and battery replacement for suit thermal regulators. Engineered to keep its charge under extreme heat - so you can keep your cool.",
+            Description: "A combined coolant and battery replacement for suit thermal regulators. Engineered for extreme heat - so you can keep your cool.",
             Assets: new ItemBatteryPack()),
             itemData: majorAidItem,
             effect: thermalRestoreMf,
