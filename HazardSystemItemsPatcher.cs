@@ -113,6 +113,7 @@ public class HazardSystemItemsPatcher
         newItem.Description = appearance.Description;
         newItem.Weight = itemData.Mass;
         newItem.Value = itemData.Value;
+        newItem.Flags = Ingestible.Flag.NoAutoCalc | Ingestible.Flag.FoodItem;
         
         newItem.ConsumeSound = appearance.Assets.GetUseSound(baseGameLinkCache);
 

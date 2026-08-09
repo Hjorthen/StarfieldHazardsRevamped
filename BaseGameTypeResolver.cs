@@ -266,22 +266,6 @@ public class BaseGameTypeResolver
         return null;
     }
 
-    private IConditionRecordGetter GetDepleteSoak_ExtremeEnvironment_ConditionRecord(string hazardType)
-    {
-        switch (hazardType)
-        {
-            case "Corrosive":
-                return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SoakSuppressed_ExtremeEnvironment_Corrosive");
-            case "Airborne":
-            case "Radiation":
-                return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SoakSuppressed_ExtremeEnvironment_Radiation_Solar");
-            case "Thermal": 
-                return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_SoakSuppressed_ExtremeEnvironment_Heat");
-            default:
-                throw new ArgumentException(hazardType + " is not valid");
-        }
-    }
-
     private string ResistanceToEnvSoakTyped(IFormLinkGetter<IActorValueInformationGetter> resistValue)
     {
         if(resistValue.FormKey == ENV_Resist_Corrosive_FormKey)

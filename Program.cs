@@ -8,7 +8,6 @@ var hazardMod = new StarfieldMod("HaOS.esp", StarfieldRelease.Starfield);
 using var formAllocator = new TextFileFormKeyAllocator(hazardMod, string.Format("FormID_allocations_{0}.txt", hazardMod.ModKey.FileName.NameWithoutExtension));
 hazardMod.SetAllocator(formAllocator);
 
-
 using var env = GameEnvironment.Typical.Builder<IStarfieldMod, IStarfieldModGetter>(GameRelease.Starfield)
                 .WithTargetDataFolder("/home/sehj/.local/share/Steam/steamapps/common/Starfield/Data")
                 .WithLoadOrder("Starfield.esm")
