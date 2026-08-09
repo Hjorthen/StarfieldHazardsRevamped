@@ -60,32 +60,82 @@ public class HazardsSystemPatcher
         // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
         PatchHazardDamage();
         var hazardSystem = MakeHazardSystem();
-        var soakNotficiation = AddNewNotificationSpell();
+        var soakNotficiation = AddNewNotificationSpells();
+        var lowSoakBeeper = AddNewLowSoakTriggerAbility();
         var restoreSoakAbility = SetupRestoreSoakAbility();
         var requiredRecords = new RequiredSystemRecords()
         {
-            Spells = [soakNotficiation, restoreSoakAbility],
+            Spells = [..soakNotficiation, restoreSoakAbility, lowSoakBeeper],
         };
         return (hazardSystem, requiredRecords);
     }
 
-
-    private Spell AddNewNotificationSpell()
+    private Spell AddNewLowSoakTriggerAbility()
     {
-        var notifySpell = mod.Spells.AddNew("HaOS_SoakDamage_Notifier");
-        notifySpell.Name = "HaOS Soak Notifier";
-        notifySpell.Type = Spell.SpellType.Disease;
-        
-        foreach (var type in hazardTypes)
+        // At what % dmg should the warning trigger?
+        const float triggerThreshold = 80;
+        var dmgEffect = AddDmgBasegameSoakAV();
+
+        var notifySpell = mod.Spells.AddNew($"HaOS_SoakDamage_Notifier_Beeper");
+        notifySpell.Flags = Spell.Flag.IgnoreResistance;
+        notifySpell.Type = Spell.SpellType.Ability;
+
+        var spellEffectBuilder = new MagicEffectSpellEntryBuilder()
+        .WithMagnitude(triggerThreshold)
+        .WithBaseEffect(dmgEffect);
+
+        foreach (var item in hazardTypes)
         {
-            var spellEffects = MakeNotificationEffectsForType([100, 90, 70, 35, 25, 15, 10, 5, 0], type);
-            notifySpell.Effects.AddRange(spellEffects);
+            const float threshold = 100 - triggerThreshold;
+            spellEffectBuilder.AddCondition(
+                GetValueCondition.With((IActorValueInformation)envSoakRecords[item]).LessThanOrEqual().ValueOr(threshold)
+            );
+            
         }
 
+        notifySpell.Effects.Add(spellEffectBuilder.Build());
+        return notifySpell;
+    }
+
+    private IMagicEffect AddDmgBasegameSoakAV()
+    {
+        string editorId = $"HaOS_Damage_Env_Soak";
+        var damageEffect = mod.MagicEffects.AddNew(editorId);
+
+        damageEffect.Flags = MagicEffect.Flag.HideInUI | MagicEffect.Flag.Painless | MagicEffect.Flag.NoHitEffect | MagicEffect.Flag.Detrimental;
+        damageEffect.Description = $"Environment damage alert";
+
+        damageEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
+
+        // Target basegame's "EnvSoak" ActorValue as the engine watches that for when it needs to trigger the beep
+        damageEffect.CastType = CastType.ConstantEffect;
+        damageEffect.Archetype = new MagicEffectArchetype()
+        {
+            Type = MagicEffectArchetype.TypeEnum.ValueModifier
+        };
+        damageEffect.ActorValue2 = resolver.ENV_Damage_Soak_AV;
+
+        return damageEffect;
+    }
+
+    private List<Spell> AddNewNotificationSpells()
+    {
+        return hazardTypes.Select(type => AddNewNotificationSpellOfType(type)).ToList();
+    }
+
+    private Spell AddNewNotificationSpellOfType(string hazardType)
+    {
+        var notifySpell = mod.Spells.AddNew($"HaOS_SoakDamage_Notifier_{hazardType}");
+        notifySpell.Name = $"{hazardType} Suit Integrity";
+        notifySpell.Type = Spell.SpellType.Disease;
+        var spellEffects = MakeNotificationEffectsForType([90, 70, 50, 40, 30, 20, 10, 5], hazardType);
+        notifySpell.Effects.AddRange(spellEffects);
 
         return notifySpell;
     }
 
+    // TODO: Fix magic effect not being displayed if value drops below 100
+    // Add a "Depleted" effect that displays once the spell dissapears!
     // Helper function to create the conditions to invoke the magic effect at given intervals
     private static IEnumerable<Effect> MakeNotificationEffectsForType(float[] thresholds, IActorValueInformationGetter soakAv, IMagicEffectGetter warningEffect)
     {
@@ -97,11 +147,17 @@ public class HazardsSystemPatcher
             }
         ).ToList(); // Zip with itself but have the "other" pair be the next value or 0
 
+        // Special threshold for fully restored soak
+        yield return new MagicEffectSpellEntryBuilder().WithBaseEffect(warningEffect).WithMagnitude(100).AddCondition(GetValueCondition.With(soakAv).GreaterThanOrEqual().Value(100)).Build();
+
+        // Thresholds in-between
         for (int i = 0; i < thresholds.Length; i++)
         {
             float belowMagnitude = thresholds[i];
             yield return new MagicEffectSpellEntryBuilder().WithBaseEffect(warningEffect).WithMagnitude(belowMagnitude).AddConditions(conditionPairs[i]).Build();
         }
+        // Special threshold for depleted soak
+        yield return new MagicEffectSpellEntryBuilder().WithBaseEffect(warningEffect).WithMagnitude(0).AddCondition(GetValueCondition.With(soakAv).LessThanOrEqual().Value(0)).Build();
     }
 
     private IEnumerable<Effect> MakeNotificationEffectsForType(float[] thresholds, string hazardType)
@@ -114,10 +170,9 @@ public class HazardsSystemPatcher
     private IMagicEffect AddNotificationMagicEffect(string hazardType)
     {
         string editorId = $"HaOS_ThresholdNotification_{hazardType}";
-        var soakAV = envSoakRecords[hazardType];
         var warningEffect = mod.MagicEffects.AddNew(editorId);
 
-        warningEffect.Description = $"{hazardType} protection at <mag>%";
+        warningEffect.Description = $"Suit protection at <mag>%";
         warningEffect.DATADataTypeState |= MagicEffect.DATADataType.Break0;
 
         ScriptAttachment.OfScript("Haos_SoakNotificationScript")
@@ -332,6 +387,7 @@ public class HazardsSystemPatcher
     {
 
         var ability = mod.Spells.AddNew("HaOS_RestoreSoakAbility");
+        ability.Type = Spell.SpellType.Ability;
         var restoreSoakForm = resolver.GetSoakRestoreConditionRecord();
 
         foreach(var newEffect in applyEffects)

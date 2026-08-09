@@ -162,7 +162,6 @@ public class HazardsSystemSpellsPatcher
                 {
                     return effectHazardType;
                 }
-
             }
         }
         return null;
@@ -186,50 +185,62 @@ public class HazardsSystemSpellsPatcher
     }
     private void PatchSpellHazard(ISpellGetter record, string hazardType)
     {
-        List<Effect> environmentalDamageEffects = new();
         Console.WriteLine("Patching spell " + record.EditorID);
         var patch = outputMod.Spells.GetOrAddAsOverride(record);
 
         // Keyword is needed by the scaling resistance damage perk. 
         patch.Keywords.Add(resolver.GetDamageTypeKeyword(hazardType));
-        List<Effect> extremeSoakSuppressEffects = new();
+        bool isExtremeEnvironmentEffect = patch.EditorID.StartsWith("ENV_SuppressSoak_Extreme");
+        
+        // Fix for some extreme environment effects being wrongfully marked as "Ability" which ignores resistances.
+        if(isExtremeEnvironmentEffect)
+        {
+            patch.Type = Spell.SpellType.Disease;
+        }
+
+        List<Effect> effectsToDelete = new();
         foreach(var effect in patch.Effects)
         {
-            bool effectTypeEnvironmentalDamage = false;
-            foreach(var condition in effect.Conditions)
+            PatchEffectConditions(hazardType, effect);
+            if(!effect.Magnitude.IsNull)
             {
-                // Replace the conditions that check if we should deteriorate the suit integrity
-                if (resolver.IsConditionTargetingDamageSoakForm(condition))
-                {
-                    resolver.ReplaceConditionTarget(condition, hazardSystem.GetSoakCondition(hazardType));
-                }
-
-                // Replace the conditions that check if we should start applying damage
-                if (resolver.IsConditionApplyEnviornmentalDamage(condition))
-                {
-                    resolver.ReplaceConditionTarget(condition, hazardSystem.GetApplyEnvDamageCondition(hazardType));
-                    effectTypeEnvironmentalDamage = true;
-                }
-            }
-            if(effectTypeEnvironmentalDamage)
-            {
-                environmentalDamageEffects.Add(effect);
+                // Update the record's value to match whats stored in the Global. 
+                // Creation Kit does this, the global is not read at runtime.
             }
 
-            if(patch.EditorID.StartsWith("ENV_SuppressSoak_Extreme"))
+            if (isExtremeEnvironmentEffect)
             {
-                if(resolver.IsExtremeEnvironmentEffect(effect))
+                if (resolver.IsExtremeEnvironmentEffect(effect))
                 {
                     // ENV_SuppressSoak purpose is to completely remove all soak, ignoring resistances completely. That's no fun so we remove it.
-                    extremeSoakSuppressEffects.Add(effect);
+                    effectsToDelete.Add(effect);
 
                 }
             }
         }
+
         // Remove all suppress soak effects
-        foreach (var effect in extremeSoakSuppressEffects)
+        foreach (var effect in effectsToDelete)
         {
             patch.Effects.Remove(effect);   
+        }
+    }
+
+    private void PatchEffectConditions(string hazardType, Effect effect)
+    {
+        foreach (var condition in effect.Conditions)
+        {
+            // Replace the conditions that check if we should deteriorate the suit integrity
+            if (resolver.IsConditionTargetingDamageSoakForm(condition))
+            {
+                resolver.ReplaceConditionTarget(condition, hazardSystem.GetSoakCondition(hazardType));
+            }
+
+            // Replace the conditions that check if we should start applying damage
+            if (resolver.IsConditionApplyEnviornmentalDamage(condition))
+            {
+                resolver.ReplaceConditionTarget(condition, hazardSystem.GetApplyEnvDamageCondition(hazardType));
+            }
         }
     }
 

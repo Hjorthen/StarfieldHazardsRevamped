@@ -220,3 +220,15 @@ HaOS_Reduced_EnvDmg_Ability
 2157
 HaOS_Reduced_EnvDmg_MagicEffect
 2158
+HaOS_SoakDamage_Notifier_Thermal
+2159
+HaOS_SoakDamage_Notifier_Airborne
+2160
+HaOS_SoakDamage_Notifier_Corrosive
+2161
+HaOS_SoakDamage_Notifier_Radiation
+2162
+HaOS_Damage_Env_Soak
+2163
+HaOS_SoakDamage_Notifier_Beeper
+2164

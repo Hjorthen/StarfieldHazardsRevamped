@@ -9,6 +9,11 @@ public abstract class ConditionBuilder<T> where T : ConditionBuilder<T>
     private CompareOperator compareOperator;
     private Condition.Flag conditionFlag = 0;
 
+    public T GreaterThanOrEqual()
+    {
+        compareOperator = CompareOperator.GreaterThanOrEqualTo;
+        return (T)this;
+    }
     public T GreaterThan()
     {
         compareOperator = CompareOperator.GreaterThan;
