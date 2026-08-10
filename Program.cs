@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using HazardOverhaul.Extensions;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Environments;
 using Mutagen.Bethesda.Plugins.Allocators;
@@ -41,6 +42,8 @@ var requiredRecordsMaxResistance = HazardSystemMaxResistancePerkPatcher.WritePat
 var requiredRecords = requiredRecordsMaxResistance.Union(requiredRecordsMaxResistance).Union(hazardSystemForms);
 
 HazardSystemModEnablerPatcher.WritePatch(requiredRecords, hazardMod);
+
+hazardMod.RefreshSpellGlobalMagnitudes(env);
 
 hazardMod.BeginWrite
 .ToPath(Path.Combine("", hazardMod.ModKey.FileName))
