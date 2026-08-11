@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
 
 namespace Records.Fluent;
@@ -29,6 +32,44 @@ public class ScriptAttachment
         return new ScriptAttachment(scriptName);
     }
 
+    public ScriptAttachment SetProperty(string propertyName, FormLink<IActorValueInformationGetter> data)
+    {
+        _Properties.Add(new ScriptObjectProperty()
+        {
+            Name = propertyName,
+            Object = data
+        });
+
+        return this;
+    }
+
+    public ScriptAttachment SetProperty(string propertyName, IEnumerable<IFormLink<IStarfieldMajorRecordGetter>> entries)
+    {
+        var entriesAsScriptProperty = entries.Select(e => new ScriptObjectProperty()
+        {
+            Object = e
+        });
+
+        var property = new ScriptObjectListProperty()
+        {
+            Name = propertyName,
+            Objects = new Noggog.ExtendedList<ScriptObjectProperty>(entriesAsScriptProperty),
+        };
+
+        _Properties.Add(property);
+        return this;
+    }
+
+    public ScriptAttachment SetProperty(string propertyName, float data)
+    {
+        _Properties.Add(new ScriptFloatProperty()
+        {
+            Name = propertyName,
+            Data = data
+        });
+        
+        return this;
+    }
     public ScriptAttachment SetProperty(string name, string data)
     {
         _Properties.Add(new ScriptStringProperty()
@@ -63,4 +104,5 @@ public class ScriptAttachment
             Type = MagicEffectArchetype.TypeEnum.Script
         };
     }
+
 }

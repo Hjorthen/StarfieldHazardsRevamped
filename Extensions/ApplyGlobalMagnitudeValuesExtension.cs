@@ -67,7 +67,7 @@ class ApplyGlobalMagnitudeValues
         return winningRecords
             .Spell().WinningOverrides()
             .Where(spell => 
-                spell.Effects.Any(e => e.HasGlobalMagnitudeReference())
+                spell.Effects.Any(e => e.HasGlobalMagnitudeReference()) && spell.EditorID!.StartsWith("ENV_")
             ).ToList();
     }
 }

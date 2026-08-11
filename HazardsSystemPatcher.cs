@@ -72,32 +72,26 @@ public class HazardsSystemPatcher
 
     private Spell AddNewLowSoakTriggerAbility()
     {
-        // At what % dmg should the warning trigger?
-        const float triggerThreshold = 80;
-        var dmgEffect = AddDmgBasegameSoakAV();
+        // At what % remaining soak should the warning trigger?
+        const float triggerThreshold = 20.0f;
+        var dmgEffect = AddDmgBasegameSoakAV(triggerThreshold);
 
         var notifySpell = mod.Spells.AddNew($"HaOS_SoakDamage_Notifier_Beeper");
         notifySpell.Flags = Spell.Flag.IgnoreResistance;
         notifySpell.Type = Spell.SpellType.Ability;
 
-        var spellEffectBuilder = new MagicEffectSpellEntryBuilder()
-        .WithMagnitude(triggerThreshold)
-        .WithBaseEffect(dmgEffect);
-
-        foreach (var item in hazardTypes)
-        {
-            const float threshold = 100 - triggerThreshold;
-            spellEffectBuilder.AddCondition(
-                GetValueCondition.With((IActorValueInformation)envSoakRecords[item]).LessThanOrEqual().ValueOr(threshold)
-            );
-            
-        }
-
-        notifySpell.Effects.Add(spellEffectBuilder.Build());
+        notifySpell.Effects.Add(new MagicEffectSpellEntryBuilder()
+        .WithMagnitude(0)
+        .WithBaseEffect(dmgEffect)
+        .AddConditions(envSoakRecords.Values
+            .Select(record => 
+                GetValueCondition.With((IActorValueInformationGetter)record).LessThan().ValueOr(triggerThreshold)
+            )
+        ).Build());
         return notifySpell;
     }
 
-    private IMagicEffect AddDmgBasegameSoakAV()
+    private IMagicEffect AddDmgBasegameSoakAV(float startBeepingThreshold)
     {
         string editorId = $"HaOS_Damage_Env_Soak";
         var damageEffect = mod.MagicEffects.AddNew(editorId);
@@ -111,9 +105,18 @@ public class HazardsSystemPatcher
         damageEffect.CastType = CastType.ConstantEffect;
         damageEffect.Archetype = new MagicEffectArchetype()
         {
-            Type = MagicEffectArchetype.TypeEnum.ValueModifier
+            Type = MagicEffectArchetype.TypeEnum.Script
         };
         damageEffect.ActorValue2 = resolver.ENV_Damage_Soak_AV;
+
+        ScriptAttachment.OfScript("Haos_SoakDepletionBeepEffect")
+            .SetProperty("SoakValues", envSoakRecords.Values.Select(r => r.ToLink()))
+            .SetProperty("SetValue", resolver.ENV_Damage_Soak_AV)
+            .SetProperty("SoakLow", 0.0f)
+            .SetProperty("SoakHigh", startBeepingThreshold)
+            .SetProperty("TargetMin", 0.0f)
+            .SetProperty("TargetMax", 35.0f)
+            .ApplyTo(damageEffect);
 
         return damageEffect;
     }

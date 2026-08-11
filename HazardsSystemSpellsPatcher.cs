@@ -206,6 +206,9 @@ public class HazardsSystemSpellsPatcher
             {
                 // Update the record's value to match whats stored in the Global. 
                 // Creation Kit does this, the global is not read at runtime.
+                
+
+
             }
 
             if (isExtremeEnvironmentEffect)
