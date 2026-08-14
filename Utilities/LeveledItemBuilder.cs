@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
-using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Starfield;
 using Noggog;
 
@@ -61,29 +60,35 @@ public sealed class LeveledItemBuilder
         IFormLink<IItemGetter> item,
         short level = 1,
         short count = 1,
-        float chanceNonePercent = 0f)
+        float chanceNonePercent = 0f,
+        Condition? entryCondition = null)
     {
-        listEntries.Add(new LeveledItemEntry
+        var newLLEntry = new LeveledItemEntry
         {
             Level = level,
             Reference = item,
             Count = count,
             ChanceNone = Percent.FactoryPutInRange(chanceNonePercent / 100f),
-        });
+        };
 
+        if (entryCondition != null)
+            newLLEntry.Conditions.Add(entryCondition);
+
+        listEntries.Add(newLLEntry);
         return this;
     }
 
     /// <summary>
     /// Typed overload for Ingestible records (chems, food, drink) so callers don't have
-    /// to manually upcast to IItemGetter via ToLinkGetter&lt;IItemGetter&gt;().
+    /// to manually upcast to IItemGetter via ToLinkGetter<IItemGetter>().
     /// </summary>
     public LeveledItemBuilder AddEntry(
         IIngestibleGetter ingestible,
         short level = 1,
         short count = 1,
-        float chanceNonePercent = 0f)
-        => AddEntry(ingestible.ToLink<IItemGetter>(), level, count, chanceNonePercent);
+        float chanceNonePercent = 0f,
+        Condition? entryCondition = null)
+        => AddEntry(ingestible.ToLink<IItemGetter>(), level, count, chanceNonePercent, entryCondition);
 
     /// <summary>
     /// Typed overload for MiscItem records (loose loot, junk, quest items) so callers don't
@@ -104,8 +109,9 @@ public sealed class LeveledItemBuilder
         ILeveledItemGetter nestedList,
         short level = 1,
         short count = 1,
-        float chanceNonePercent = 0f)
-        => AddEntry(nestedList.ToLink<IItemGetter>(), level, count, chanceNonePercent);
+        float chanceNonePercent = 0f,
+        Condition? entryCondition = null)
+        => AddEntry(nestedList.ToLink<IItemGetter>(), level, count, chanceNonePercent, entryCondition);
 
     // ---------------------------------------------------------------------
     // List-level settings

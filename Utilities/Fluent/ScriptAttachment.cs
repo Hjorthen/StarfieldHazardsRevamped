@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Starfield;
 
@@ -32,7 +33,11 @@ public class ScriptAttachment
         return new ScriptAttachment(scriptName);
     }
 
-    public ScriptAttachment SetProperty(string propertyName, FormLink<IActorValueInformationGetter> data)
+    public ScriptAttachment SetProperty<T>(string propertyName, FormLink<T> data) where T : class,IStarfieldMajorRecordGetter
+    {
+        return SetProperty(propertyName, new FormLink<IStarfieldMajorRecordGetter>(data.FormKey));       
+    }
+    public ScriptAttachment SetProperty(string propertyName, FormLink<IStarfieldMajorRecordGetter> data)
     {
         _Properties.Add(new ScriptObjectProperty()
         {
@@ -105,4 +110,70 @@ public class ScriptAttachment
         };
     }
 
+
+    public void ApplyTo(AQuestAlias alias, Quest owningQuest)
+    {
+        var index = FindQuestAliasIndex(alias, owningQuest);
+
+        // Alias scripts are actually attached to their associated quest record..
+        owningQuest.VirtualMachineAdapter ??= new QuestAdapter()
+        {
+            Version = 6,
+            ObjectFormat = 2,
+            Scripts = []
+        };
+
+        var aliasScript = new QuestFragmentAlias
+        {
+            Property = new ScriptObjectProperty()
+            {
+                Alias = index,
+                Flags = ScriptProperty.Flag.Edited,
+                Object = owningQuest.ToLink()
+            },
+            Scripts = [
+                CreateScriptEntry()
+            ]
+        };
+
+        owningQuest.VirtualMachineAdapter.Aliases.Add(aliasScript);
+    }
+
+    private static short FindQuestAliasIndex(AQuestAlias alias, Quest owningQuest)
+    {
+        if (owningQuest.Aliases?.Any() != true)
+        {
+            throw new ArgumentException("The quest must have an alias", nameof(owningQuest));
+        }
+
+        var aliasIndex = owningQuest.Aliases.FindIndex((x) => x.Equals(alias));
+        if (aliasIndex == -1)
+        {
+            throw new ArgumentException("The specified alias was not attached to the given quest", nameof(alias));
+        }
+
+        return (short)aliasIndex;
+    }
+
+    public void ApplyTo(Quest quest)
+    {
+        quest.VirtualMachineAdapter ??= new QuestAdapter()
+        {
+            Version = 6,
+            ObjectFormat = 2,
+            Scripts = []
+        };
+
+        quest.VirtualMachineAdapter.Scripts.Add(CreateScriptEntry());
+    }
+
+    private ScriptEntry CreateScriptEntry()
+    {
+        return new ScriptEntry()
+        {
+            Flags = ScriptEntry.Flag.Local,
+            Name = _ScriptName,
+            Properties = new Noggog.ExtendedList<ScriptProperty>(_Properties)
+        };
+    }
 }

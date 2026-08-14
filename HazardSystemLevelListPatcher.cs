@@ -45,22 +45,74 @@ public class HazardSystemLevelListPatcher
 
         AddMajorAidItems(majorEditorIds);
         AddMinorAidItems(minorEditorIds);
+        AddHumanEnemyLoot();
+    }
+    /// <summary>
+    /// Adds a chance for human enemies to spawn the minor variants of hazard-aids. They need it to survive too, right?
+    /// </summary>
+    private void AddHumanEnemyLoot()
+    {
+        var extremeRadiationForm = baseGameLinkCache.Resolve<IConditionRecordGetter>("PEO_ENV_CND_ExtremeEnvironment_Radiation_Solar");
+        var extremeHeatForm = baseGameLinkCache.Resolve<IConditionRecordGetter>("PEO_ENV_CND_ExtremeEnvironment_Heat");
+        var extremeCorrosiveForm = baseGameLinkCache.Resolve<IConditionRecordGetter>("PEO_ENV_CND_ExtremeEnvironment_Corrosive");
+        var extremeAirborneForm = baseGameLinkCache.Resolve<IConditionRecordGetter>("PEO_ENV_CND_ExtremeEnvironment_Toxic");
+
+
+        var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(false).CalculateFromAllLevels(true);
+        builder.AddEntry(
+            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Radiation"),
+            entryCondition: GetConditionFormCondition.With(extremeRadiationForm).EqualsTo().Value(1)
+        );
+        builder.AddEntry(
+            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Thermal"),
+            entryCondition: GetConditionFormCondition.With(extremeHeatForm).EqualsTo().Value(1)
+        );
+        builder.AddEntry(
+            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Corrosive"),
+            entryCondition: GetConditionFormCondition.With(extremeCorrosiveForm).EqualsTo().Value(1)
+        );
+        builder.AddEntry(
+            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Airborne"),
+            entryCondition: GetConditionFormCondition.With(extremeAirborneForm).EqualsTo().Value(1)
+        );
+
+        var humanLootHazardAid = builder.Build(outputMod, "HaOS_Human_Hazard_Aid");
+        
+        string[] humanEnemiesLL = [
+            "LL_LootTheme_Military",
+            "LL_LootTheme_CrimsonFleet",
+            "LL_LootTheme_Ecliptic",
+            "LL_LootTheme_Spacer",
+            "LL_LootTheme_Syndicate",
+            "LL_LootTheme_VaruunZealot"
+        ];
+        var leveledListInjector = LeveledItemBuilder.Create().AddEntry(humanLootHazardAid);
+        foreach (var item in humanEnemiesLL)
+        {
+            Inject(item, leveledListInjector);
+        }
     }
 
     private void AddMinorAidItems(IEnumerable<string> minorAidItemList)
     {
-        var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
-        foreach (var item in minorAidItemList)
-        {
-            var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
-            // 1-2 each pick for variation, 1.5 average
-            builder.AddEntry(ingestible, 1, 1);
-            builder.AddEntry(ingestible, 1, 2);
-        }
-        var randomRestoreLevelItem = builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak_Minor");
+        LeveledItem randomRestoreLevelItem = AddRandomAidLL(minorAidItemList);
+        LeveledItem vendorInventoryLL = AddVendorInventoryLL(randomRestoreLevelItem);
 
+        // Inject into vendors
+        var patchBuilder = LeveledItemBuilder.Create().SetFlag(LeveledItem.Flag.UseAll, true);
+        patchBuilder.AddEntry(vendorInventoryLL, count: 1);
+        Inject("LLS_Vendor_ShipRepairKits", patchBuilder);
+
+        // Inject into random containers
+        patchBuilder = LeveledItemBuilder.Create();
+        patchBuilder.AddEntry(randomRestoreLevelItem, count: 1);
+        Inject("LL_Loot_Misc_Medium", patchBuilder);
+    }
+
+    private LeveledItem AddVendorInventoryLL(LeveledItem randomRestoreLevelItem)
+    {
         // Small chance for lots at the vendor
-        builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true).WithChanceNone(50);
+        var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true).WithChanceNone(50);
         builder.AddEntry(randomRestoreLevelItem, count: 5);
         var paydayItemList = builder.Build(outputMod, "HaOS_LLS_Aid_BonusItems_50");
 
@@ -70,22 +122,24 @@ public class HazardSystemLevelListPatcher
         builder.AddEntry(paydayItemList, count: 1);
         var extraItemsChanceList = builder.Build(outputMod, "HaOS_LLS_Aid_BonusItems_40");
 
+        // The LL to be used by vendors
         builder = LeveledItemBuilder.Create().SetFlag(LeveledItem.Flag.UseAll, true);
         builder.AddEntry(randomRestoreLevelItem, count: 4);
         builder.AddEntry(extraItemsChanceList, count: 1);
-        var vendorList = builder.Build(outputMod, "HaOS_LLS_Aid_Vendor");
+        return builder.Build(outputMod, "HaOS_LLS_Aid_Vendor");
+    }
 
-        builder = LeveledItemBuilder.Create().SetFlag(LeveledItem.Flag.UseAll, true);
-        builder.AddEntry(vendorList, count: 1);
-
-        Inject("LLS_Vendor_ShipRepairKits", builder);
-
-        // Inject into random containers
-        
-        builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
-        builder.AddEntry(randomRestoreLevelItem, count: 1);
-
-        Inject("LL_Loot_Mfg_Small_Leveled", builder);
+    private LeveledItem AddRandomAidLL(IEnumerable<string> minorAidItemList)
+    {
+        var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
+        foreach (var item in minorAidItemList)
+        {
+            var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
+            // 1-2 each pick for variation, 1.5 average
+            builder.AddEntry(ingestible, 1, 1);
+            builder.AddEntry(ingestible, 1, 2);
+        }
+        return builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak_Minor");
     }
 
     private void AddMajorAidItems(IEnumerable<string> majorAidItemList)

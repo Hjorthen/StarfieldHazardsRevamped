@@ -34,7 +34,7 @@ HazardSystemItemsPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 HazardSystemLevelListPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 
 HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
-HazardWorldspacePatcher.WritePatch(hazardMod, hazardSystem, mapper, linkCache);
+// HazardWorldspacePatcher.WritePatch(hazardMod, hazardSystem, mapper, linkCache);
 
 var requiredRecordsScalingResistance = HazardSystemScalingResistancesPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 var requiredRecordsMaxResistance = HazardSystemMaxResistancePerkPatcher.WritePatch(hazardSystem, hazardMod, linkCache);

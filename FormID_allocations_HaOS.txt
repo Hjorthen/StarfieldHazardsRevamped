@@ -232,3 +232,7 @@ HaOS_Damage_Env_Soak
 2163
 HaOS_SoakDamage_Notifier_Beeper
 2164
+HaOS_Human_Hazard_Aid
+2165
+Haos_Init_Quest
+2166
