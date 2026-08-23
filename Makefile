@@ -10,7 +10,7 @@ deploy: mod_install papyrus
 
 mod_install: $(starfield_data_dir)/HaOS.esp
 
-papyrus: $(pex_targets)
+papyrus: $(pex_targets) 
 
 $(starfield_data_dir)/Scripts/%.pex : papyrus/%.psc
 # Check if we have any scripts that are newer than our compiled ones
@@ -25,6 +25,7 @@ $(starfield_data_dir)/HaOS.esp: $(modfile)
 	cp "$@" "$@".bak
 	cp "$<" "$@"
 
+# Only re-make the modfile if the binary got updated but dotnet build
 $(modfile): $(patcher_binary_path)
 	dotnet run
 

@@ -41,9 +41,10 @@ var requiredRecordsMaxResistance = HazardSystemMaxResistancePerkPatcher.WritePat
 
 var requiredRecords = requiredRecordsMaxResistance.Union(requiredRecordsMaxResistance).Union(hazardSystemForms);
 
-HazardSystemModEnablerPatcher.WritePatch(requiredRecords, hazardMod);
-
 hazardMod.RefreshSpellGlobalMagnitudes(env);
+new StupidGlobWriter().Write("papyrus/Haos_GlobalOverrides.psc");
+HazardSystemModEnablerPatcher.WritePatch(requiredRecords, hazardMod, linkCache);
+
 
 hazardMod.BeginWrite
 .ToPath(Path.Combine("", hazardMod.ModKey.FileName))

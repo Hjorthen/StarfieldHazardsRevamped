@@ -73,6 +73,17 @@ public class BaseGameTypeResolver
             return linkCache.ResolveIdentifier<IActorValueInformationGetter>("ENV_Resist_Thermal");
         }
     }
+    public IConditionRecordGetter GetBaseGameHazardExceptionCondition()
+    {
+        return linkCache.Resolve<IConditionRecordGetter>("ENV_CND_OnExtremePlanet__Exceptions");
+    }
+
+    public List<FormKey> GetBaseGameHazardExceptionsForRemoval()
+    {
+        return [
+
+        ];
+    }
 
     public IActorValueInformationGetter GetResistanceForHazard(string hazardType)
     {

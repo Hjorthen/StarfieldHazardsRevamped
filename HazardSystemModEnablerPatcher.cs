@@ -34,16 +34,18 @@ public class HazardSystemModEnablerPatcher
 {
     private readonly RequiredSystemRecords systemRecords;
     private readonly StarfieldMod outputMod;
+    private readonly ILinkCache linkCache;
 
-    private HazardSystemModEnablerPatcher(RequiredSystemRecords systemRecords, StarfieldMod outputMod)
+    private HazardSystemModEnablerPatcher(RequiredSystemRecords systemRecords, StarfieldMod outputMod, ILinkCache linkCache)
     {
         this.systemRecords = systemRecords;
         this.outputMod = outputMod;
+        this.linkCache = linkCache;
     }
 
-    public static void WritePatch(RequiredSystemRecords systemRecords,  StarfieldMod outputMod)
+    public static void WritePatch(RequiredSystemRecords systemRecords,  StarfieldMod outputMod, ILinkCache linkCache)
     {
-        var patcher = new HazardSystemModEnablerPatcher(systemRecords, outputMod);
+        var patcher = new HazardSystemModEnablerPatcher(systemRecords, outputMod, linkCache);
         patcher.PatchInternal();
     }
     private void PatchInternal()
@@ -66,11 +68,23 @@ public class HazardSystemModEnablerPatcher
         quest.Aliases = [playerAlias];
 
         ScriptAttachment.OfScript("Haos_PlayerAlias").ApplyTo(playerAlias, quest);
-        ScriptAttachment.OfScript("Haos_Init")
-            .SetProperty("InitPerk", enablerPerk)
-            .ApplyTo(quest);
+        var initScript = ScriptAttachment.OfScript("Haos_Init")
+            .SetProperty("InitPerk", enablerPerk);
+        ConfigureGlobOverrides(initScript);
+
+        initScript.ApplyTo(quest);
 
         return quest;
+    }
+
+    private void ConfigureGlobOverrides(ScriptAttachment script)
+    {
+        var globalValues = new EnvDamageSettings();
+        foreach (var item in globalValues.GetGlobNames())
+        {
+            var globalFormkey = linkCache.ResolveIdentifier<IGlobalGetter>(item).ToLink<IStarfieldMajorRecord>();
+            script.SetProperty(StupidGLOBFormatter.GetLookupString(item), globalFormkey);
+        }
     }
 
     private AQuestAlias CreatePlayerAlias()

@@ -59,6 +59,7 @@ public class HazardsSystemPatcher
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
         // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
         PatchHazardDamage();
+        PatchHazardLocationExceptions();
         var hazardSystem = MakeHazardSystem();
         var soakNotficiation = AddNewNotificationSpells();
         var lowSoakBeeper = AddNewLowSoakTriggerAbility();
@@ -68,6 +69,28 @@ public class HazardsSystemPatcher
             Spells = [..soakNotficiation, restoreSoakAbility, lowSoakBeeper],
         };
         return (hazardSystem, requiredRecords);
+    }
+
+    /// <summary>
+    /// Patches base game's exception list for where hazards can have an effect
+    /// </summary>
+    /// <exception cref="NotImplementedException"></exception>
+    private void PatchHazardLocationExceptions()
+    {
+        var locationsToRemove = new HashSet<FormKey>();
+        var indexesToRemove = new List<int>();
+        var baseGameExceptionList = resolver.GetBaseGameHazardExceptionCondition();
+        var conditionOverride = mod.ConditionRecords.GetOrAddAsOverride(baseGameExceptionList);
+        
+        conditionOverride.Conditions.RemoveWhere((entry) =>
+        {
+            if(entry.Data is GetIsCurrentLocationConditionData locationData)
+                return locationsToRemove.Contains(locationData.FirstParameter.Link.FormKey);
+
+            return false;
+        });
+
+        // Add check for SettleGagarinLocation - Scratch that, we need an extra condition for weather-related hazards for it to be used. Gagarin has no "Extreme" hazard.
     }
 
     private Spell AddNewLowSoakTriggerAbility()

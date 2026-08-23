@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins.Cache;
 using Mutagen.Bethesda.Starfield;
@@ -27,7 +29,18 @@ public class EnvDamageSettings
     public float? ENV_AppliedSpell_Mag_Lingering { get; init; } = 20.0f;
     public float? ENV_AppliedSpell_Mag_Lingering_Soak_RATIO { get; init; } = 1.0f;
 
-    private EnvDamageSettings() {}
+    private readonly IReadOnlyDictionary<string, float> settings;
+
+    public EnvDamageSettings()
+    {
+        settings = typeof(EnvDamageSettings).GetProperties().ToDictionary(
+            keySel => keySel.Name,
+            valueSel => (float)valueSel.GetValue(this)
+        );
+    }
+
+    public IEnumerable<string> GetGlobNames() => settings.Keys;
+    public float GetValue(string globName) => settings[globName];
 
     public static void Apply(IStarfieldMod mod, ILinkCache linkCache)
     {   
