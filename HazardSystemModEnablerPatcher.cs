@@ -4,7 +4,6 @@ using System.Linq;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins;
 using Mutagen.Bethesda.Plugins.Cache;
-using Mutagen.Bethesda.Plugins.Records;
 using Mutagen.Bethesda.Starfield;
 using Records.Fluent;
 
@@ -35,17 +34,19 @@ public class HazardSystemModEnablerPatcher
     private readonly RequiredSystemRecords systemRecords;
     private readonly StarfieldMod outputMod;
     private readonly ILinkCache linkCache;
+    private readonly ChangedGlobCollection changedGlobs;
 
-    private HazardSystemModEnablerPatcher(RequiredSystemRecords systemRecords, StarfieldMod outputMod, ILinkCache linkCache)
+    private HazardSystemModEnablerPatcher(RequiredSystemRecords systemRecords, StarfieldMod outputMod, ILinkCache linkCache, ITypeRegistry haosComponents)
     {
         this.systemRecords = systemRecords;
         this.outputMod = outputMod;
         this.linkCache = linkCache;
+        this.changedGlobs = haosComponents.Resolve<ChangedGlobCollection>();
     }
 
-    public static void WritePatch(RequiredSystemRecords systemRecords,  StarfieldMod outputMod, ILinkCache linkCache)
+    public static void WritePatch(RequiredSystemRecords systemRecords,  StarfieldMod outputMod, ILinkCache linkCache, ITypeRegistry haosComponents)
     {
-        var patcher = new HazardSystemModEnablerPatcher(systemRecords, outputMod, linkCache);
+        var patcher = new HazardSystemModEnablerPatcher(systemRecords, outputMod, linkCache, haosComponents);
         patcher.PatchInternal();
     }
     private void PatchInternal()
@@ -79,11 +80,9 @@ public class HazardSystemModEnablerPatcher
 
     private void ConfigureGlobOverrides(ScriptAttachment script)
     {
-        var globalValues = new EnvDamageSettings();
-        foreach (var item in globalValues.GetGlobNames())
+        foreach (var change in changedGlobs)
         {
-            var globalFormkey = linkCache.ResolveIdentifier<IGlobalGetter>(item).ToLink<IStarfieldMajorRecord>();
-            script.SetProperty(StupidGLOBFormatter.GetLookupString(item), globalFormkey);
+            script.SetProperty(StupidGLOBFormatter.GetLookupString(change.editorId), change.formLink.Cast<IStarfieldMajorRecord>());
         }
     }
 

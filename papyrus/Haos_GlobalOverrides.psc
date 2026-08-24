@@ -5,19 +5,19 @@ Float Function Lookup(String keyVal) Global
 If keyVal == "Weather_Mag_NumConcurrentEffects_1"
 	Return 0.75
 ElseIf keyVal == "Weather_Mag_NumConcurrentEffects_2"
-	Return 0.4875
+	Return 0.45000002
 ElseIf keyVal == "Weather_Mag_NumConcurrentEffects_3"
-	Return 0.3625
+	Return 0.36
 ElseIf keyVal == "Weather_Mag_NumConcurrentEffects_4"
-	Return 0.3
+	Return 0.32400003
 ElseIf keyVal == "Weather_Mag_Soak_NumConcurrentEffects_1"
-	Return 1.85
+	Return 3.5
 ElseIf keyVal == "Weather_Mag_Soak_NumConcurrentEffects_2"
-	Return 1.2
+	Return 2.1000001
 ElseIf keyVal == "Weather_Mag_Soak_NumConcurrentEffects_3"
-	Return 0.8941
+	Return 1.6800001
 ElseIf keyVal == "Weather_Mag_Soak_NumConcurrentEffects_4"
-	Return 0.74
+	Return 1.5120001
 ElseIf keyVal == "Hazard_Mag_Dmg_Standard"
 	Return 4
 ElseIf keyVal == "Hazard_Mag_Soak_Standard"
@@ -38,5 +38,13 @@ ElseIf keyVal == "AppliedSpell_Mag_Lingering"
 	Return 20
 ElseIf keyVal == "AppliedSpell_Mag_Lingering_Soak_RATIO"
 	Return 1
+ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_1"
+	Return 0.2
+ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_2"
+	Return 0.120000005
+ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_3"
+	Return 0.09600001
+ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_4"
+	Return 0.08640001
 EndIf
 EndFunction

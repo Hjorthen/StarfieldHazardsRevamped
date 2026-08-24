@@ -1,6 +1,4 @@
 
-using System.Collections;
-using System.Collections.Generic;
 using HazardOverhaul.Builders;
 using Mutagen.Bethesda;
 using Mutagen.Bethesda.Plugins.Cache;
@@ -8,43 +6,28 @@ using Mutagen.Bethesda.Starfield;
 
 public class HazardSystemLevelListPatcher
 {
-    private readonly HazardSystem hazardSystem;
+    private readonly AidItemsData addedAidItems;
     private readonly StarfieldMod outputMod;
     private readonly ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache;
 
-    private HazardSystemLevelListPatcher(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    private HazardSystemLevelListPatcher(ITypeRegistry haosComponents, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
-        this.hazardSystem = hazardSystem;
+        this.addedAidItems = haosComponents.Resolve<AidItemsData>();
+
         this.outputMod = outputMod;
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static void WritePatch(ITypeRegistry haosComponents, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
-        var patcher = new HazardSystemLevelListPatcher(hazardSystem, outputMod, baseGameLinkCache);
+        var patcher = new HazardSystemLevelListPatcher(haosComponents, outputMod, baseGameLinkCache);
         patcher.PatchInternal();
     }
 
     private void PatchInternal()
     {
-        string[] majorEditorIds = new string[]
-        {
-            "HaOS_Item_Restore_Major_Radiation",
-            "HaOS_Item_Restore_Major_Thermal",
-            "HaOS_Item_Restore_Major_Corrosive",
-            "HaOS_Item_Restore_Major_Airborne"
-        };
-
-        string[] minorEditorIds = new string[]
-        {
-            "HaOS_Item_Restore_Minor_Radiation",
-            "HaOS_Item_Restore_Minor_Thermal",
-            "HaOS_Item_Restore_Minor_Corrosive",
-            "HaOS_Item_Restore_Minor_Airborne"
-        };
-
-        AddMajorAidItems(majorEditorIds);
-        AddMinorAidItems(minorEditorIds);
+        AddMajorAidItems();
+        AddMinorAidItems();
         AddHumanEnemyLoot();
     }
     /// <summary>
@@ -60,19 +43,19 @@ public class HazardSystemLevelListPatcher
 
         var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(false).CalculateFromAllLevels(true);
         builder.AddEntry(
-            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Radiation"),
+            addedAidItems.LookupMinorAidFor("Radiation"),
             entryCondition: GetConditionFormCondition.With(extremeRadiationForm).EqualsTo().Value(1)
         );
         builder.AddEntry(
-            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Thermal"),
+            addedAidItems.LookupMinorAidFor("Thermal"),
             entryCondition: GetConditionFormCondition.With(extremeHeatForm).EqualsTo().Value(1)
         );
         builder.AddEntry(
-            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Corrosive"),
+            addedAidItems.LookupMinorAidFor("Corrosive"),
             entryCondition: GetConditionFormCondition.With(extremeCorrosiveForm).EqualsTo().Value(1)
         );
         builder.AddEntry(
-            baseGameLinkCache.Resolve<IIngestibleGetter>("HaOS_Item_Restore_Minor_Airborne"),
+            addedAidItems.LookupMinorAidFor("Airborne"),
             entryCondition: GetConditionFormCondition.With(extremeAirborneForm).EqualsTo().Value(1)
         );
 
@@ -93,9 +76,9 @@ public class HazardSystemLevelListPatcher
         }
     }
 
-    private void AddMinorAidItems(IEnumerable<string> minorAidItemList)
+    private void AddMinorAidItems()
     {
-        LeveledItem randomRestoreLevelItem = AddRandomAidLL(minorAidItemList);
+        LeveledItem randomRestoreLevelItem = AddRandomAidLL();
         LeveledItem vendorInventoryLL = AddVendorInventoryLL(randomRestoreLevelItem);
 
         // Inject into vendors
@@ -129,12 +112,11 @@ public class HazardSystemLevelListPatcher
         return builder.Build(outputMod, "HaOS_LLS_Aid_Vendor");
     }
 
-    private LeveledItem AddRandomAidLL(IEnumerable<string> minorAidItemList)
+    private LeveledItem AddRandomAidLL()
     {
         var builder = LeveledItemBuilder.Create().CalculateForEachItemInCount(true).CalculateFromAllLevels(true);
-        foreach (var item in minorAidItemList)
+        foreach (var ingestible in addedAidItems.MinorAidItems)
         {
-            var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
             // 1-2 each pick for variation, 1.5 average
             builder.AddEntry(ingestible, 1, 1);
             builder.AddEntry(ingestible, 1, 2);
@@ -142,13 +124,12 @@ public class HazardSystemLevelListPatcher
         return builder.Build(outputMod, "HaOS_LLS_Aid_RestoreSoak_Minor");
     }
 
-    private void AddMajorAidItems(IEnumerable<string> majorAidItemList)
+    private void AddMajorAidItems()
     {
         var builder = LeveledItemBuilder.Create().CalculateFromAllLevels(true).CalculateForEachItemInCount(true);
 
-        foreach (var item in majorAidItemList)
+        foreach (var ingestible in addedAidItems.MajorAidItems)
         {
-            var ingestible = baseGameLinkCache.Resolve<IIngestibleGetter>(item);
             builder.AddEntry(ingestible, 1, 1);
         }
 

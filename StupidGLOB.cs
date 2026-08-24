@@ -9,11 +9,16 @@ using System.Text;
 /// </summary>
 public class StupidGlobWriter
 {
+    private readonly ChangedGlobCollection globChanges;
+
+    public StupidGlobWriter(ChangedGlobCollection globChanges)
+    {
+        this.globChanges = globChanges;
+    }
+
     public void Write(Stream file)
     {
-        List<StupidGLOBFormatter.GlobEntry> globalGetters = GetGlobalsToConfigure();
-
-        string scriptContent = CreateScriptContent(globalGetters);
+        string scriptContent = CreateScriptContent();
 
         using StreamWriter writer = new(file);
         writer.Write(scriptContent);
@@ -25,33 +30,18 @@ public class StupidGlobWriter
         Write(fs);
     }
 
-    private static string CreateScriptContent(List<StupidGLOBFormatter.GlobEntry> globalGetters)
+    private string CreateScriptContent()
     {
-        return new StupidGLOBFormatter(globalGetters).FormatScript();
+        return new StupidGLOBFormatter(globChanges).FormatScript();
     }
-
-    private static List<StupidGLOBFormatter.GlobEntry> GetGlobalsToConfigure()
-    {
-        var settings = new EnvDamageSettings();
-        List<StupidGLOBFormatter.GlobEntry> globalGetters = [];
-        foreach (var item in settings.GetGlobNames())
-        {
-            float value = settings.GetValue(item);
-            globalGetters.Add(new StupidGLOBFormatter.GlobEntry(item, value));
-        }
-
-        return globalGetters;
-    }
-
 }
 
 public class StupidGLOBFormatter
 {
-    public record GlobEntry (string editorId, float globalValue);
 
-    private IList<GlobEntry> list;
+    private ChangedGlobCollection list;
 
-    public StupidGLOBFormatter(IList<GlobEntry> list)
+    public StupidGLOBFormatter(ChangedGlobCollection list)
     {
         this.list = list;
     }
@@ -73,18 +63,19 @@ public class StupidGLOBFormatter
 
     private void AppendGlobals(StringBuilder ss)
     {
-        for (int i = 0; i < list.Count; i++)
+        int currentIndex = 0;
+        foreach (var item in list)
         {
-            string lookupKey = GetLookupString(list[i].editorId);
-            float value = list[i].globalValue;
+            string lookupKey = GetLookupString(item.editorId);
+            float value = item.globalValue;
 
-            if (i == 0)
+            if (currentIndex == 0)
                 ss.AppendLine($"If keyVal == \"{lookupKey}\"");
             else 
                 ss.AppendLine($"ElseIf keyVal == \"{lookupKey}\"");
             
             ss.AppendLine($"\tReturn {value}");
-            
+            currentIndex++; 
         }
 
         ss.AppendLine("EndIf");

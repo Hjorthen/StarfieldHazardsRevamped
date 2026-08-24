@@ -57,7 +57,7 @@ public sealed class LeveledItemBuilder
     /// <paramref name="chanceNonePercent"/> is 0-100 and defaults to 0 (always awarded if picked).
     /// </summary>
     public LeveledItemBuilder AddEntry(
-        IFormLink<IItemGetter> item,
+        IFormLinkGetter<IItemGetter> item,
         short level = 1,
         short count = 1,
         float chanceNonePercent = 0f,
@@ -66,7 +66,7 @@ public sealed class LeveledItemBuilder
         var newLLEntry = new LeveledItemEntry
         {
             Level = level,
-            Reference = item,
+            Reference = item.Cast<IItemGetter>(),
             Count = count,
             ChanceNone = Percent.FactoryPutInRange(chanceNonePercent / 100f),
         };

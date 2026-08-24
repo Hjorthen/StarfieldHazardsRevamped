@@ -202,15 +202,6 @@ public class HazardsSystemSpellsPatcher
         foreach(var effect in patch.Effects)
         {
             PatchEffectConditions(hazardType, effect);
-            if(!effect.Magnitude.IsNull)
-            {
-                // Update the record's value to match whats stored in the Global. 
-                // Creation Kit does this, the global is not read at runtime.
-                
-
-
-            }
-
             if (isExtremeEnvironmentEffect)
             {
                 if (resolver.IsExtremeEnvironmentEffect(effect))

@@ -33,7 +33,7 @@ public class ScriptAttachment
         return new ScriptAttachment(scriptName);
     }
 
-    public ScriptAttachment SetProperty<T>(string propertyName, FormLink<T> data) where T : class,IStarfieldMajorRecordGetter
+    public ScriptAttachment SetProperty<T>(string propertyName, IFormLink<T> data) where T : class,IStarfieldMajorRecordGetter
     {
         return SetProperty(propertyName, new FormLink<IStarfieldMajorRecordGetter>(data.FormKey));       
     }

@@ -17,6 +17,7 @@ using var env = GameEnvironment.Typical.Builder<IStarfieldMod, IStarfieldModGett
 
 // The linkCache has to be created from the priority-order it seems
 var linkCache = env.LinkCache;
+var haosComponents = new BasicTypeRegistry();
 
 var resolver = new BaseGameTypeResolver(linkCache);
 var mapper = new HazardsMapper(
@@ -24,17 +25,20 @@ var mapper = new HazardsMapper(
 );
 
 var (hazardSystem, hazardSystemForms) = HazardsSystemPatcher.WritePatch(hazardMod, mapper.HazardTypes, resolver);
-EnvDamageSettings.Apply(hazardMod, linkCache);
+// Apply changes to Globs used by the hazard system
+var changedGlobs = EnvDamageSettings.Apply(hazardMod, linkCache);
+haosComponents.Add(changedGlobs);
 
 // Allow the hazardSystem to lookup things in the updated cachhe
 hazardSystem.SetLinkCache(linkCache);
+haosComponents.Add(hazardSystem);
 
-HazardSystemArmorUpgrades.WritePatch(hazardSystem, hazardMod, linkCache);
-HazardSystemItemsPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
-HazardSystemLevelListPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
+HazardSystemArmorUpgrades.WritePatch(haosComponents, hazardMod, linkCache);
+HazardSystemItemsPatcher.WritePatch(haosComponents, hazardMod, linkCache);
+HazardSystemLevelListPatcher.WritePatch(haosComponents, hazardMod, linkCache);
 
 HazardsSystemSpellsPatcher.WritePatch(hazardMod, hazardSystem, mapper, resolver, env);
-// HazardWorldspacePatcher.WritePatch(hazardMod, hazardSystem, mapper, linkCache);
+
 
 var requiredRecordsScalingResistance = HazardSystemScalingResistancesPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
 var requiredRecordsMaxResistance = HazardSystemMaxResistancePerkPatcher.WritePatch(hazardSystem, hazardMod, linkCache);
@@ -42,13 +46,11 @@ var requiredRecordsMaxResistance = HazardSystemMaxResistancePerkPatcher.WritePat
 var requiredRecords = requiredRecordsMaxResistance.Union(requiredRecordsMaxResistance).Union(hazardSystemForms);
 
 hazardMod.RefreshSpellGlobalMagnitudes(env);
-new StupidGlobWriter().Write("papyrus/Haos_GlobalOverrides.psc");
-HazardSystemModEnablerPatcher.WritePatch(requiredRecords, hazardMod, linkCache);
+new StupidGlobWriter(haosComponents.Resolve<ChangedGlobCollection>()).Write("papyrus/Haos_GlobalOverrides.psc");
+HazardSystemModEnablerPatcher.WritePatch(requiredRecords, hazardMod, linkCache, haosComponents);
 
 
 hazardMod.BeginWrite
 .ToPath(Path.Combine("", hazardMod.ModKey.FileName))
 .WithLoadOrder(env.LoadOrder)
 .Write();
-
-

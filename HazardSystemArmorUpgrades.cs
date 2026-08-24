@@ -21,8 +21,9 @@ public class HazardSystemArmorUpgrades
         this.baseGameLinkCache = baseGameLinkCache;
     }
 
-    public static void WritePatch(HazardSystem hazardSystem, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
+    public static void WritePatch(BasicTypeRegistry haosComponents, StarfieldMod outputMod, ILinkCache<IStarfieldMod, IStarfieldModGetter> baseGameLinkCache)
     {
+        var hazardSystem = haosComponents.Resolve<HazardSystem>();
         var patcher = new HazardSystemArmorUpgrades(hazardSystem, outputMod, baseGameLinkCache);
         patcher.PatchInternal();
     }
@@ -38,8 +39,6 @@ public class HazardSystemArmorUpgrades
         {
             builder.WithCraftingComponent(Material, Quantity);
         }
-        
-        
         
         builder.Build(outputMod, $"HaOS_{armorPart}_Mod_{upgradeSlot}_Resist_{hazardType}");
     }
