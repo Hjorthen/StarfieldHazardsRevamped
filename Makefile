@@ -17,7 +17,7 @@ $(starfield_data_dir)/Scripts/%.pex : papyrus/%.psc
 	@echo "$? has been updated. You must compile them again."
 	@cp "$?" "$(dir $@)/Source/$(notdir $?)"
 # Move the old compiled file so the script shows up as not compiled in CreationKit
-	@test -f "$@" && mv "$@" "$@".bak || true
+	@test -f "$@" && mv "$@" "$@".bak || echo "Nothing to move"
 
 $(starfield_data_dir)/HaOS.esp: $(modfile)
 	@echo "Updating modfile"
@@ -36,4 +36,4 @@ $(patcher_binary_path): dotnet_build\
 build: dotnet_build
 
 dotnet_build:
-	dotnet build
+	dotnet build -v m

@@ -39,12 +39,12 @@ ElseIf keyVal == "AppliedSpell_Mag_Lingering"
 ElseIf keyVal == "AppliedSpell_Mag_Lingering_Soak_RATIO"
 	Return 1
 ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_1"
-	Return 0.2
+	Return 0.9524
 ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_2"
-	Return 0.120000005
+	Return 0.57144004
 ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_3"
-	Return 0.09600001
+	Return 0.45715204
 ElseIf keyVal == "EnvironmentalDamage_Mag_NumConcurrentEffects_4"
-	Return 0.08640001
+	Return 0.41143686
 EndIf
 EndFunction

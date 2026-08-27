@@ -48,15 +48,14 @@ public class HazardSystemScalingResistancesPatcher
             Description = "Provides a hidden bonus to hazard resistance",
             Effects = new ExtendedList<APerkEffect>()
             {
-                MakePerkEffect(hazardType,1 - 0.125f,             20f,  25f),
                 MakePerkEffect(hazardType,1 - 0.133333333333333f, 25f,  30f),
-                MakePerkEffect(hazardType,1 - 0.171428571428571f, 30f,  40f),
-                MakePerkEffect(hazardType,1 - 0.3f,                40f,  50f),
-                MakePerkEffect(hazardType,1 - 0.5f,                50f,  70f),
-                MakePerkEffect(hazardType,1 - 0.5f,                70f,  85f),
-                MakePerkEffect(hazardType,1 - 0.333333333333333f, 85f,  90f),
-                MakePerkEffect(hazardType,1 - 0.3f,                90f,  95f),
-                MakePerkEffect(hazardType,1 - 0.4f,                95f, 100f),
+                MakePerkEffect(hazardType,1 - 0.357142857142857f, 30f,  40f),
+                MakePerkEffect(hazardType,1 - 0.583333333333333f, 40f,  50f),
+                MakePerkEffect(hazardType,1 - 0.7f,               50f,  70f),
+                MakePerkEffect(hazardType,1 - 0.666666666666667f, 70f,  85f),
+                MakePerkEffect(hazardType,1 - 0.533333333333333f, 85f,  90f),
+                MakePerkEffect(hazardType,1 - 0.6f,               90f,  95f),
+                MakePerkEffect(hazardType,1 - 0.41999999f,        95f, 100f),
             }
         };
 

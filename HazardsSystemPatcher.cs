@@ -57,8 +57,6 @@ public class HazardsSystemPatcher
         envSoakConditions = AddSuitIntegritySoakCounter();
         envApplyEnvDamageCondition = AddSoakDepletedCondition();
         soakDamageTakenCondition = CreateSoakDamageTakenConditionRecord();
-        // We've split the suits ability to soak damage into 4 so we need to adjust the damage as well.
-        PatchHazardDamage();
         PatchHazardLocationExceptions();
         var hazardSystem = MakeHazardSystem();
         var soakNotficiation = AddNewNotificationSpells();
@@ -266,15 +264,6 @@ public class HazardsSystemPatcher
             builder.AddGetValueCondition(AV, c => c.LessThan().ValueOr(threshold));
         }
         return builder.Build(mod, "HaOS_Soak_Condition_Threshold_" + threshold);
-    }
-
-    private void PatchHazardDamage()
-    {
-        foreach(var value in resolver.GetElementalDamageMagnitudeValues())
-        {
-            var globalOverride = mod.Globals.GetOrAddAsOverride(value); 
-            globalOverride.Data = value.Data!.Value * 4;
-        }
     }
 
     private HazardSystem MakeHazardSystem()

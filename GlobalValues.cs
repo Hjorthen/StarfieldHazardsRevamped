@@ -59,12 +59,11 @@ public class EnvDamageSettings
     public float? ENV_AppliedSpell_Mag_Lingering { get; init; } = 20.0f;
     public float? ENV_AppliedSpell_Mag_Lingering_Soak_RATIO { get; init; } = 1.0f;
 
-
     //  Values for Extreme Hazards Soak Damage
-    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_1 { get; init; } = (0.2f / 1);
-    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_2 { get; init; } = (0.2f / 2) * MathF.Pow(1.2f, 1);
-    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_3 { get; init; } = (0.2f / 3) * MathF.Pow(1.2f, 2);
-    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_4 { get; init; } = (0.2f / 4) * MathF.Pow(1.2f, 3);
+    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_1 { get; init; } = (0.9524f );
+    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_2 { get; init; } = (0.9524f ) * MathF.Pow(1.1f, 1);
+    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_3 { get; init; } = (0.9524f ) * MathF.Pow(1.1f, 2);
+    public float? PEO_EnvironmentalDamage_Mag_NumConcurrentEffects_4 { get; init; } = (0.9524f ) * MathF.Pow(1.1f, 3);
 
     public static ChangedGlobCollection Apply(IStarfieldMod mod, ILinkCache linkCache)
     {   
